@@ -1,8 +1,14 @@
 # Pronóstico fase de grupos — Mundial FIFA 2026
 
-Pipeline reproducible que **extrae** datos del Mundial 2026 (API-Football), los
-**enriquece** con ratings de fuerza y **simula** la fase de grupos por Monte
-Carlo para producir probabilidades de avance por selección.
+Pipeline reproducible que **extrae los resultados de las eliminatorias** del
+Mundial 2026 (API-Football), **estima la fuerza de cada selección a partir de esos
+partidos** (modelo Dixon-Coles, con ranking FIFA como ancla de comparabilidad entre
+confederaciones) y **simula** la fase de grupos por Monte Carlo para producir
+probabilidades de avance por selección.
+
+> **Enfoque (corregido):** el pronóstico se construye desde los **resultados reales
+> de la fase de calificación**, no desde un rating externo. La fuerza ataque/defensa
+> de cada equipo se ajusta a los goles observados en las eliminatorias.
 
 > **Principio rector:** integridad de datos sobre velocidad. Nunca se inventa un
 > dato; si una fuente no responde o cambió de formato, el pipeline **falla con un
@@ -14,12 +20,17 @@ Carlo para producir probabilidades de avance por selección.
 
 | Fase | Descripción | Estado |
 |------|-------------|--------|
-| 1 | Extracción API-Football → CSVs normalizados | ✅ Implementada |
-| 2 | Ratings de fuerza (Elo + ranking FIFA) | ✅ Implementada |
-| 3 | Modelo de partido (Elo → xG → Poisson) | ✅ Implementada |
-| 4 | Simulación Monte Carlo + desempates FIFA | ✅ Implementada |
+| 1 | Extracción: **resultados de eliminatorias** + estructura del torneo final | ✅ Implementada |
+| 2 | Fuerza por selección: **Dixon-Coles** sobre resultados + ancla FIFA | 🔄 En desarrollo |
+| 3 | Modelo de partido (fuerza → xG → Poisson) | ♻️ Se reaprovecha (cambia origen del xG) |
+| 4 | Simulación Monte Carlo + desempates FIFA 2026 | ✅ Sin cambios |
 
 Cada fase se revisa con el responsable **antes** de avanzar a la siguiente.
+
+> **Nota:** el proyecto se reorientó. Originalmente la Fase 2 usaba Elo de
+> eloratings.net; ahora la fuerza se **estima de los resultados de clasificación**.
+> Las Fases 3–4 (Poisson, Monte Carlo, desempates) se reaprovechan: solo cambia de
+> dónde sale el xG que las alimenta.
 
 ---
 
@@ -70,9 +81,10 @@ que puedes re-correr el modelo sin volver a llamar la API.
 
 ### Presupuesto de API y caché
 
-- Tier gratis = **100 requests/día**. La Fase 1 gasta **3 requests** (teams,
-  standings, fixtures); el guard aborta si se superan **20** por corrida
-  (`API.maxRequestsPorCorrida`).
+- Tier gratis = **100 requests/día**. La Fase 1 gasta `1` (leagues) + una por cada
+  eliminatoria/temporada del ciclo (~6–14) + `3` del torneo final; el guard aborta
+  si se superan **45** por corrida (`API.maxRequestsPorCorrida`). Todo se cachea
+  una sola vez.
 - Todo crudo se cachea en `data/raw/<nombre>_<timestamp>.json` **+** un puntero
   `<nombre>_latest.json`, ambos versionados en git para reproducibilidad.
 - Cada llamada se registra en `logs/extract.log` con fecha/hora, endpoint y
@@ -102,15 +114,27 @@ logs/
 
 ## Fase 1 — Extracción (implementada)
 
-Tres endpoints de API-Football v3 (`league=1`, `season=2026`):
+Baja los **resultados de las eliminatorias** (base para estimar fuerzas) y la
+**estructura del torneo final** (qué hay que pronosticar).
 
 | Endpoint | Para qué | Salida normalizada |
 |----------|----------|--------------------|
-| `teams` | 48 selecciones, IDs y nombres canónicos | `data/out/teams.csv` |
-| `standings` | Estructura de los 12 grupos (equipo → grupo) | `data/out/groups.csv` |
-| `fixtures` | Los 104 partidos | `data/out/fixtures.csv` |
+| `leagues?search=world cup` | **Resuelve en runtime** los `league id` de las eliminatorias por confederación (no se hardcodean) | — |
+| `fixtures?league=<quali>&season=<y>` | Partidos de cada eliminatoria, con goles | `data/out/quali_results.csv` |
+| `teams` (league=1) | 48 selecciones, IDs y nombres canónicos | `data/out/teams.csv` |
+| `standings` (league=1) | Estructura de los 12 grupos (equipo → grupo) | `data/out/groups.csv` |
+| `fixtures` (league=1) | Los 104 partidos del torneo | `data/out/fixtures.csv` |
 
-**Tablas limpias:**
+- **Eliminatorias cubiertas:** UEFA, CONMEBOL, CAF, AFC, CONCACAF, OFC y repechaje
+  intercontinental (configurables por patrón de nombre en `config.QUALIFIERS`). Si
+  una confederación no se resuelve en `/leagues`, se **reporta y se omite** (no se
+  inventa).
+- **`quali_results.csv`** → `fixture_id, fecha, confederacion, league_id, season,
+  round, home_id, home, away_id, away, goles_local, goles_visita, status`. Solo
+  partidos **finalizados** (`FT/AET/PEN`) con marcador válido; los no jugados se
+  excluyen (no se inventan resultados).
+
+**Tablas limpias del torneo final:**
 
 - `teams.csv` → `team_id, team, code, country`
 - `groups.csv` → `group (A–L), team_id, team, rank_inicial`

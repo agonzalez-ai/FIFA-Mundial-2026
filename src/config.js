@@ -6,15 +6,38 @@
 // ---------------------------------------------------------------------------
 export const API = {
   baseURL: 'https://v3.football.api-sports.io',
-  leagueId: 1, // Mundial = league id 1
-  season: 2026, // temporada 2026
+  finalLeagueId: 1, // Mundial (torneo final) = league id 1
+  season: 2026, // temporada del torneo final
   // Header de auth segun el modo. CONFIRMA en tu dashboard cual aplica:
   //  - 'apisports' (acceso directo): header x-apisports-key
   //  - 'rapidapi'  (via RapidAPI):   header x-rapidapi-key
   authMode: process.env.APIFOOTBALL_AUTH_MODE || 'apisports',
-  // Presupuesto de requests por corrida. Tier gratis = 100/dia; objetivo < 20.
-  maxRequestsPorCorrida: 20,
+  // Presupuesto de requests por corrida. Tier gratis = 100/dia. Las eliminatorias
+  // requieren mas calls que el torneo final (1 leagues + ~6-7 ligas x temporadas
+  // del ciclo + 3 del torneo final); se cachea todo una sola vez.
+  maxRequestsPorCorrida: 45,
 };
+
+// ---------------------------------------------------------------------------
+// Eliminatorias del ciclo 2026, por confederacion. Los `league id` se RESUELVEN
+// en runtime desde el endpoint /leagues por coincidencia de NOMBRE (no se
+// hardcodean de memoria). Si un patron no casa, se reporta y se omite (no se
+// inventan datos).
+// ---------------------------------------------------------------------------
+export const QUALIFIERS = [
+  { confederacion: 'UEFA', patron: /world cup.*qualif.*europe/i },
+  { confederacion: 'CONMEBOL', patron: /world cup.*qualif.*south america/i },
+  { confederacion: 'CAF', patron: /world cup.*qualif.*africa/i },
+  { confederacion: 'AFC', patron: /world cup.*qualif.*asia/i },
+  { confederacion: 'CONCACAF', patron: /world cup.*qualif.*(concacaf|north america)/i },
+  { confederacion: 'OFC', patron: /world cup.*qualif.*oceania/i },
+  { confederacion: 'PLAYOFF', patron: /world cup.*qualif.*(intercontinental|play-?offs?)/i },
+];
+// Temporadas del ciclo a intentar; solo se bajan las que el endpoint /leagues
+// reporte como existentes para cada liga (frugalidad de requests).
+export const CICLO_SEASONS = [2023, 2024, 2025, 2026];
+// Estados de partido considerados "jugado con marcador valido".
+export const ESTADOS_FINALIZADO = ['FT', 'AET', 'PEN'];
 
 // ---------------------------------------------------------------------------
 // Estructura verificada del torneo (no re-descubrir en runtime)
