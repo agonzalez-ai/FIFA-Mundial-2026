@@ -98,31 +98,27 @@ export const SIM = {
 // ---------------------------------------------------------------------------
 // Fase 2 — Fuentes de RATINGS de fuerza
 // ---------------------------------------------------------------------------
-// Integridad: el formato de la fuente Elo se VERIFICA en runtime. El parser
-// valida lo que efectivamente llega (Elo numerico en rango plausible, equipo no
-// vacio, conteo de filas razonable) y si no cuadra REPORTA Y SE DETIENE; nunca
-// asume un layout de columnas a ciegas.
 export const RATINGS = {
-  elo: {
-    // Fuente primaria: eloratings.net (World Football Elo).
-    // URL del export. Confirma el formato vigente en tu dashboard/navegador.
-    url: process.env.ELO_SOURCE_URL || 'https://www.eloratings.net/World.tsv',
-    // Cache local versionado. Si existe, se usa (reproducible y funciona sin red).
-    // Para refrescar: borra el archivo y corre con red, o descarga el TSV a mano.
-    cacheFile: 'elo_source', // -> data/raw/elo_source_latest.json + .tsv crudo
-    sep: '\t',
-    // Rango plausible de Elo de selecciones (para validar que la columna correcta
-    // se detecto). Fuera de esto => formato cambiado => detener.
-    rangoPlausible: [800, 2300],
-    // Conteo minimo de filas para considerar el export integro.
-    filasMinimas: 100,
+  // Archivo de resultados de eliminatorias (salida de Fase 1).
+  resultsFile: 'quali_results.csv',
+  // Parametros del ajuste Dixon-Coles (todos documentados en el README).
+  dc: {
+    vidaMediaDias: 730,  // ponderacion temporal: vida media 2 anios (xi = ln2/vidaMedia)
+    eta: 0.1,            // peso del ancla FIFA (prior sobre r = ataque - defensa)
+    sigma: 0.5,          // escala: target_net = z_fifa * sigma (unidades log-goles)
+    ridge: 0.01,         // L2 suave sobre ataque/defensa (estabilidad numerica)
+    lr: 0.05,            // tasa de aprendizaje del ascenso de gradiente
+    iters: 5000,         // iteraciones de optimizacion
+    rhoMax: 0.2,         // cota de |rho| (correccion Dixon-Coles)
   },
+  // Imputacion para finalistas sin partidos NI ancla FIFA (caso extremo): percentil
+  // bajo del rating neto. Marcado como 'imputado_pX'. Nunca un numero silencioso.
+  imputaPercentil: 5,
   fifa: {
     // Ranking FIFA (puntos). No hay endpoint libre limpio: se provee como archivo
-    // versionado data/raw/fifa_ranking.csv con columnas team,points y se DOCUMENTA
-    // la fuente y la fecha de corte. Es fuente de CONTROL, no entra al modelo.
-    cacheFile: 'fifa_ranking', // -> data/raw/fifa_ranking.csv (provisto por el usuario)
-    // Fecha de corte del ranking FIFA usado. Se rellena al cargar el archivo o aqui.
+    // versionado data/raw/fifa_ranking.csv (columnas team,points[,date]). Se usa como
+    // ANCLA de comparabilidad entre confederaciones (prior documentado, no dato base).
+    cacheFile: 'fifa_ranking',
     fechaCorte: process.env.FIFA_FECHA_CORTE || '',
     fuente: 'FIFA/Coca-Cola Men\'s World Ranking (fifa.com/ranking)',
   },

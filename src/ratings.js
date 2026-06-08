@@ -1,252 +1,174 @@
-// ratings.js — FASE 2: ratings de fuerza por seleccion (Elo + ranking FIFA).
+// ratings.js — FASE 2: fuerza por seleccion ajustando Dixon-Coles a los RESULTADOS
+// de las eliminatorias (data/out/quali_results.csv), con ranking FIFA como ancla de
+// comparabilidad entre confederaciones.
 //
-// Fuente primaria: eloratings.net (World Football Elo). Fuente de control: ranking
-// FIFA (puntos), provisto como archivo versionado.
+// Salidas:
+//   data/out/ratings.csv   -> team_id, team, confederacion, ataque, defensa, net,
+//                             n_partidos, fifa_points, fuente, fecha_corte
+//   data/out/dc_params.json-> { base, h, rho, ... } (parametros globales del ajuste,
+//                             que las Fases 3-4 necesitan para derivar el xG)
 //
 // Integridad:
-//  - El formato del export Elo se VERIFICA en runtime: se detecta la columna de
-//    Elo por sus valores (numericos, en rango plausible) y la de nombre; si el
-//    archivo no es reconocible, se REPORTA y SE DETIENE (no se asume layout).
-//  - Equipos sin Elo (debutantes) -> imputacion percentil 5 DOCUMENTADA, marcada
-//    como fuente 'imputado_p5'. Nunca un numero arbitrario silencioso.
-//  - Nada se rellena: nombres que no casan se reportan.
-//
-// Salida: data/out/ratings.csv (team_id, team, elo, fifa_points, fuente, fecha_corte).
+//  - Solo usa partidos jugados (los filtra Fase 1). No inventa resultados.
+//  - Anfitriones (sin eliminatorias) toman su nivel del ancla FIFA -> fuente=ancla_fifa.
+//  - Finalista sin partidos NI FIFA -> imputado por percentil bajo, marcado y reportado.
 
 import fs from 'node:fs';
 import path from 'node:path';
-import axios from 'axios';
-import { RATINGS, PATHS, MODELO } from './config.js';
-import { aCSV, objetosDesdeDelimitado, parseDelimitado } from './lib/csv.js';
+import { RATINGS, PATHS } from './config.js';
+import { aCSV, objetosDesdeDelimitado } from './lib/csv.js';
 import { indexarEquipos, casar } from './lib/names.js';
-import { info, warn, error } from './lib/logger.js';
+import { ajustar } from './lib/dixoncoles.js';
+import { info, warn } from './lib/logger.js';
 
-// --- Carga de teams.csv (salida de Fase 1) ---------------------------------
-
-function cargarTeams() {
-  const ruta = path.join(PATHS.out, 'teams.csv');
-  if (!fs.existsSync(ruta)) {
-    throw new Error(`Falta ${ruta}. Corre primero "npm run extract" (Fase 1).`);
-  }
+function cargarCSV(nombre) {
+  const ruta = path.join(PATHS.out, nombre);
+  if (!fs.existsSync(ruta)) throw new Error(`Falta ${ruta}. Corre primero "npm run extract" (Fase 1).`);
   const { rows } = objetosDesdeDelimitado(fs.readFileSync(ruta, 'utf8'), ',');
   if (rows.length === 0) throw new Error(`${ruta} esta vacio.`);
   return rows;
 }
 
-// --- Obtencion del texto crudo de Elo (cache local o fetch) ----------------
-// Prefiere cache versionado (reproducible y funciona sin red). Para refrescar,
-// borra el .tsv cacheado o corre con red disponible.
-
-async function obtenerTextoElo() {
-  const baseTs = path.join(PATHS.raw, `${RATINGS.elo.cacheFile}_latest.tsv`);
-  if (fs.existsSync(baseTs)) {
-    const stat = fs.statSync(baseTs);
-    info(`Elo: usando cache local ${baseTs} (corte ${stat.mtime.toISOString()}).`);
-    return { texto: fs.readFileSync(baseTs, 'utf8'), fechaCorte: stat.mtime.toISOString(), origen: `cache:${baseTs}` };
-  }
-  // No hay cache: intentar fetch (requiere red; en sandboxes restringidos fallara).
-  info(`Elo: sin cache local, descargando ${RATINGS.elo.url} ...`);
-  let res;
-  try {
-    res = await axios.get(RATINGS.elo.url, { timeout: 30000, responseType: 'text' });
-  } catch (e) {
-    const detalle = e.response ? `HTTP ${e.response.status}` : e.message;
-    error(`No se pudo descargar Elo desde ${RATINGS.elo.url}: ${detalle}`);
-    throw new Error(
-      `Fuente Elo inaccesible (${detalle}). Descarga el export a "${baseTs}" y reintenta, ` +
-      `o corre en un entorno con acceso a eloratings.net. NO se inventan ratings.`
-    );
-  }
-  const texto = String(res.data);
-  const ts = new Date().toISOString();
-  fs.mkdirSync(PATHS.raw, { recursive: true });
-  fs.writeFileSync(baseTs, texto);
-  fs.writeFileSync(path.join(PATHS.raw, `${RATINGS.elo.cacheFile}_${ts.replace(/[:.]/g, '-')}.tsv`), texto);
-  info(`Elo: descargado y cacheado (${texto.length} bytes).`);
-  return { texto, fechaCorte: ts, origen: RATINGS.elo.url };
-}
-
-// --- Deteccion y validacion del export Elo (funcion pura) ------------------
-// Devuelve { pares: [{name, elo}], meta }. Lanza error claro si el formato no
-// es reconocible (verificacion en runtime, sin asumir layout).
-
-export function extraerElo(texto, sep = '\t', rango = [800, 2300], filasMin = 100) {
-  const filas = parseDelimitado(texto, sep);
-  if (filas.length < filasMin) {
-    throw new Error(
-      `Export Elo con ${filas.length} filas (< ${filasMin} esperadas). ` +
-      `Formato inesperado o archivo truncado: ME DETENGO sin asumir.`
-    );
-  }
-  const nCols = Math.max(...filas.map((f) => f.length));
-  const [lo, hi] = rango;
-
-  // Por columna: nro de enteros en rango Elo, sus valores distintos, y texto no
-  // numerico (candidato a nombre) con su diversidad.
-  const numericoEnRango = new Array(nCols).fill(0);
-  const distintosNum = Array.from({ length: nCols }, () => new Set());
-  const textoNoNum = new Array(nCols).fill(0);
-  const distintosTxt = Array.from({ length: nCols }, () => new Set());
-  for (const f of filas) {
-    for (let c = 0; c < nCols; c++) {
-      const v = (f[c] ?? '').trim();
-      if (v === '') continue;
-      const num = Number(v);
-      if (Number.isFinite(num) && Number.isInteger(num) && num >= lo && num <= hi) {
-        numericoEnRango[c]++;
-        distintosNum[c].add(num);
-      } else if (!/^-?\d+(\.\d+)?$/.test(v)) {
-        textoNoNum[c]++;
-        distintosTxt[c].add(v.toLowerCase());
-      }
-    }
-  }
-
-  // Candidatas a Elo: columnas con >50% de enteros en rango.
-  const candidatas = [];
-  numericoEnRango.forEach((n, c) => { if (n >= filas.length * 0.5) candidatas.push(c); });
-  if (candidatas.length === 0) {
-    throw new Error(
-      `No se detecto una columna de Elo plausible (valores en [${lo},${hi}]). ` +
-      `El formato de eloratings.net pudo cambiar: REPORTO Y ME DETENGO.`
-    );
-  }
-  // Elo varia mucho por equipo: elegimos la candidata con MAS valores distintos
-  // (asi una columna constante en rango, p.ej. un anio, no se confunde con Elo).
-  candidatas.sort((a, b) => distintosNum[b].size - distintosNum[a].size);
-  const colElo = candidatas[0];
-  if (distintosNum[colElo].size < filas.length * 0.3) {
-    throw new Error(
-      `La columna Elo candidata tiene muy pocos valores distintos (${distintosNum[colElo].size}). ` +
-      `Formato inesperado: REPORTO Y ME DETENGO.`
-    );
-  }
-  // Ambiguedad real: dos columnas igual de diversas dentro del rango.
-  if (candidatas[1] !== undefined &&
-      distintosNum[candidatas[1]].size > distintosNum[colElo].size * 0.8) {
-    throw new Error(
-      `Deteccion de columna Elo AMBIGUA (cols ${colElo} y ${candidatas[1]} igual de diversas). ` +
-      `Me detengo para no elegir mal.`
-    );
-  }
-
-  // Columna nombre = la de mas texto no numerico con buena diversidad.
-  let colNom = -1, mejorNom = 0;
-  textoNoNum.forEach((n, c) => {
-    if (c === colElo) return;
-    if (n > mejorNom && distintosTxt[c].size > filas.length * 0.5) { mejorNom = n; colNom = c; }
-  });
-  if (colNom < 0) {
-    throw new Error('No se detecto columna de nombre de seleccion. REPORTO Y ME DETENGO.');
-  }
-
-  const pares = [];
-  for (const f of filas) {
-    const name = (f[colNom] ?? '').trim();
-    const elo = Number((f[colElo] ?? '').trim());
-    if (name && Number.isFinite(elo) && elo >= lo && elo <= hi) pares.push({ name, elo });
-  }
-  return { pares, meta: { colElo, colNom, filas: filas.length, detectados: pares.length } };
-}
-
-// --- Carga opcional del ranking FIFA (control) -----------------------------
-
-// Carga el ranking FIFA y devuelve Map<team_id, points> casado contra el indice.
-function cargarFifa(idx) {
-  const ruta = path.join(PATHS.raw, `${RATINGS.fifa.cacheFile}.csv`);
-  if (!fs.existsSync(ruta)) {
-    warn(`Ranking FIFA no provisto (${ruta}). fifa_points quedara vacio (es fuente de control, opcional).`);
-    return { porTeamId: new Map(), fechaCorte: RATINGS.fifa.fechaCorte };
-  }
-  const { headers, rows } = objetosDesdeDelimitado(fs.readFileSync(ruta, 'utf8'), ',');
-  const colTeam = headers.find((h) => /team|seleccion|country|pais|name/i.test(h));
-  const colPts = headers.find((h) => /point|puntos|pts|rating/i.test(h));
-  const colDate = headers.find((h) => /date|fecha|corte/i.test(h));
-  if (!colTeam || !colPts) {
-    throw new Error(`fifa_ranking.csv sin columnas reconocibles de equipo/puntos (headers: ${headers.join(',')}).`);
-  }
-  const porTeamId = new Map();
-  for (const r of rows) {
-    const eq = casar(r[colTeam], idx);
-    const pts = Number(r[colPts]);
-    if (eq && Number.isFinite(pts)) porTeamId.set(eq.team_id, pts);
-  }
-  const fechaCorte = (colDate && rows[0]?.[colDate]) || RATINGS.fifa.fechaCorte;
-  info(`Ranking FIFA cargado: ${porTeamId.size}/${idx.size} equipos casados (corte ${fechaCorte || 'sin fecha'}).`);
-  return { porTeamId, fechaCorte };
-}
-
-// --- Imputacion percentil (funcion pura) -----------------------------------
-// Percentil p (0-100) por nearest-rank sobre valores ascendentes.
+// Percentil nearest-rank (p en 0-100).
 export function percentil(valores, p) {
   if (valores.length === 0) return null;
-  const orden = [...valores].sort((a, b) => a - b);
-  const idx = Math.min(orden.length - 1, Math.floor((p / 100) * (orden.length - 1)));
-  return orden[idx];
+  const o = [...valores].sort((a, b) => a - b);
+  return o[Math.min(o.length - 1, Math.floor((p / 100) * (o.length - 1)))];
 }
 
-// --- Orquestacion ----------------------------------------------------------
+// z-score de un Map<id, valor>. Devuelve Map<id, z> (0 si sd=0).
+function zscore(mapa) {
+  const vals = [...mapa.values()];
+  const mu = vals.reduce((a, b) => a + b, 0) / vals.length;
+  const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mu) ** 2, 0) / vals.length) || 1;
+  return new Map([...mapa].map(([id, v]) => [id, (v - mu) / sd]));
+}
 
-async function main() {
-  info('=== FASE 2: ratings de fuerza (Elo + FIFA) ===');
-  const teams = cargarTeams();
-  const idx = indexarEquipos(teams);
-  info(`Equipos canonicos cargados: ${teams.length}.`);
-
-  // Elo
-  const { texto, fechaCorte: eloCorte, origen } = await obtenerTextoElo();
-  const { pares, meta } = extraerElo(texto, RATINGS.elo.sep, RATINGS.elo.rangoPlausible, RATINGS.elo.filasMinimas);
-  info(`Elo detectado: ${meta.detectados} selecciones (col nombre=${meta.colNom}, col elo=${meta.colElo}). Origen: ${origen}.`);
-
-  // Join Elo -> equipos canonicos
-  const eloPorTeamId = new Map();
-  let sinCasar = 0;
-  for (const { name, elo } of pares) {
-    const eq = casar(name, idx);
-    if (eq) eloPorTeamId.set(eq.team_id, elo);
-    else sinCasar++;
+// Carga ranking FIFA y lo casa por nombre a team_id usando el indice canonico.
+function cargarFifaPorId(idxEquipos) {
+  const ruta = path.join(PATHS.raw, `${RATINGS.fifa.cacheFile}.csv`);
+  if (!fs.existsSync(ruta)) {
+    warn(`Ranking FIFA no provisto (${ruta}). SIN ancla: el nivel relativo entre confederaciones y los anfitriones (sin eliminatorias) no quedaran calibrados. Se recomienda proveerlo.`);
+    return { puntos: new Map(), fechaCorte: RATINGS.fifa.fechaCorte };
   }
-  info(`Elo casado a ${eloPorTeamId.size}/${teams.length} selecciones del torneo (${sinCasar} filas Elo externas no participantes, ignoradas).`);
+  const { headers, rows } = objetosDesdeDelimitado(fs.readFileSync(ruta, 'utf8'), ',');
+  const cT = headers.find((h) => /team|seleccion|country|pais|name/i.test(h));
+  const cP = headers.find((h) => /point|puntos|pts|rating/i.test(h));
+  const cD = headers.find((h) => /date|fecha|corte/i.test(h));
+  if (!cT || !cP) throw new Error(`fifa_ranking.csv sin columnas equipo/puntos (headers: ${headers.join(',')}).`);
+  const puntos = new Map();
+  for (const r of rows) {
+    const eq = casar(r[cT], idxEquipos);
+    const p = Number(r[cP]);
+    if (eq && Number.isFinite(p)) puntos.set(eq.team_id, p);
+  }
+  const fechaCorte = (cD && rows[0]?.[cD]) || RATINGS.fifa.fechaCorte;
+  info(`Ranking FIFA: ${puntos.size} equipos casados (corte ${fechaCorte || 'sin fecha'}).`);
+  return { puntos, fechaCorte };
+}
 
-  // FIFA (control, opcional)
-  const fifa = cargarFifa(idx);
+function main() {
+  info('=== FASE 2: fuerza Dixon-Coles desde resultados de eliminatorias ===');
+  const quali = cargarCSV(RATINGS.resultsFile);
+  const teams = cargarCSV('teams.csv'); // 48 finalistas (team_id global)
 
-  // Imputacion percentil DOCUMENTADA (MODELO.percentilImputacionElo) para sin-Elo
-  const elosConocidos = [...eloPorTeamId.values()];
-  const pImput = percentil(elosConocidos, MODELO.percentilImputacionElo);
-  const filasSalida = teams.map((t) => {
-    const tieneElo = eloPorTeamId.has(t.team_id);
-    const elo = tieneElo ? eloPorTeamId.get(t.team_id) : pImput;
-    const fifaPts = fifa.porTeamId.get(t.team_id);
-    return {
-      team_id: t.team_id,
-      team: t.team,
-      elo,
-      fifa_points: Number.isFinite(fifaPts) ? fifaPts : '',
-      fuente: tieneElo ? 'eloratings.net' : `imputado_p${MODELO.percentilImputacionElo}`,
-      fecha_corte: eloCorte.slice(0, 10),
-    };
+  // Partidos -> {homeId, awayId, gh, ga, fecha}
+  const crudos = quali.map((r) => ({
+    homeId: String(r.home_id), awayId: String(r.away_id),
+    gh: Number(r.goles_local), ga: Number(r.goles_visita), fecha: r.fecha, conf: r.confederacion,
+  })).filter((m) => m.homeId && m.awayId && Number.isFinite(m.gh) && Number.isFinite(m.ga));
+  if (crudos.length === 0) throw new Error('quali_results.csv sin partidos validos.');
+
+  // Ponderacion temporal: w = exp(-xi * dias_atras), xi = ln2 / vidaMediaDias.
+  const tiempos = crudos.map((m) => new Date(m.fecha).getTime()).filter((t) => Number.isFinite(t));
+  const tmax = Math.max(...tiempos);
+  const xi = Math.log(2) / RATINGS.dc.vidaMediaDias;
+  const matches = crudos.map((m) => {
+    const t = new Date(m.fecha).getTime();
+    const diasAtras = Number.isFinite(t) ? (tmax - t) / 86400000 : 0;
+    return { homeId: m.homeId, awayId: m.awayId, gh: m.gh, ga: m.ga, weight: Math.exp(-xi * diasAtras) };
   });
+  const fechaCorte = new Date(tmax).toISOString().slice(0, 10);
+  info(`Partidos: ${matches.length} (corte ${fechaCorte}, vida media ${RATINGS.dc.vidaMediaDias}d).`);
 
-  const imputados = filasSalida.filter((r) => r.fuente.startsWith('imputado_'));
-  if (imputados.length) {
-    warn(`Selecciones SIN Elo (imputadas a p${MODELO.percentilImputacionElo}=${pImput}): ${imputados.map((r) => r.team).join(', ')}.`);
+  // Indice de nombres para casar el ranking FIFA (finalistas + equipos de eliminatorias).
+  const universoNombres = [
+    ...teams.map((t) => ({ team_id: String(t.team_id), team: t.team })),
+    ...quali.map((r) => ({ team_id: String(r.home_id), team: r.home })),
+    ...quali.map((r) => ({ team_id: String(r.away_id), team: r.away })),
+  ];
+  const idx = indexarEquipos(universoNombres);
+
+  // Ancla FIFA -> z-score por id.
+  const { puntos: fifaPuntos, fechaCorte: fifaCorte } = cargarFifaPorId(idx);
+  const fifaZ = zscore(fifaPuntos);
+
+  // Confederacion mas frecuente por equipo (de los partidos jugados).
+  const confDe = new Map();
+  for (const m of crudos) {
+    for (const id of [m.homeId, m.awayId]) {
+      if (!confDe.has(id)) confDe.set(id, new Map());
+      const c = confDe.get(id); c.set(m.conf, (c.get(m.conf) || 0) + 1);
+    }
   }
+  const confPrincipal = (id) => {
+    const c = confDe.get(id); if (!c) return '';
+    return [...c.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  };
 
-  // Escritura
+  // Ajuste.
+  const fit = ajustar(matches, { fifaZ, ...RATINGS.dc });
+  info(`Ajuste DC: base=${fit.base.toFixed(3)}, h=${fit.h.toFixed(3)}, rho=${fit.rho.toFixed(3)}, LL=${fit.ll.toFixed(1)}.`);
+
+  // Filas de salida para los 48 finalistas.
+  const netsConDatos = teams
+    .map((t) => String(t.team_id))
+    .filter((id) => (fit.nMatches.get(id) || 0) > 0)
+    .map((id) => fit.ataque.get(id) - fit.defensa.get(id));
+  const netImput = percentil(netsConDatos, RATINGS.imputaPercentil);
+
+  const filas = [];
+  const imputados = [], soloAncla = [];
+  for (const t of teams) {
+    const id = String(t.team_id);
+    const n = fit.nMatches.get(id) || 0;
+    let a = fit.ataque.get(id), d = fit.defensa.get(id), fuente;
+    if (n > 0) fuente = 'dixon_coles';
+    else if (fifaZ.has(id)) { fuente = 'ancla_fifa'; soloAncla.push(t.team); }
+    else { // sin partidos ni FIFA: imputacion documentada
+      a = netImput ?? 0; d = 0; fuente = `imputado_p${RATINGS.imputaPercentil}`; imputados.push(t.team);
+    }
+    filas.push({
+      team_id: id, team: t.team, confederacion: confPrincipal(id),
+      ataque: a.toFixed(4), defensa: d.toFixed(4), net: (a - d).toFixed(4),
+      n_partidos: n, fifa_points: fifaPuntos.has(id) ? fifaPuntos.get(id) : '',
+      fuente, fecha_corte: fechaCorte,
+    });
+  }
+  filas.sort((x, y) => Number(y.net) - Number(x.net));
+
+  if (soloAncla.length) warn(`Sin eliminatorias (fuerza del ancla FIFA): ${soloAncla.join(', ')}.`);
+  if (imputados.length) warn(`Sin partidos NI FIFA (imputados p${RATINGS.imputaPercentil}): ${imputados.join(', ')}.`);
+
   fs.mkdirSync(PATHS.out, { recursive: true });
-  const ruta = path.join(PATHS.out, 'ratings.csv');
-  fs.writeFileSync(ruta, aCSV(filasSalida, [
-    'team_id', 'team', 'elo', 'fifa_points', 'fuente', 'fecha_corte',
+  fs.writeFileSync(path.join(PATHS.out, 'ratings.csv'), aCSV(filas, [
+    'team_id', 'team', 'confederacion', 'ataque', 'defensa', 'net', 'n_partidos', 'fifa_points', 'fuente', 'fecha_corte',
   ]));
-  info(`Escrito ${ruta} (${filasSalida.length} filas; ${imputados.length} imputadas).`);
+  info(`Escrito ${path.join(PATHS.out, 'ratings.csv')} (${filas.length} finalistas).`);
+
+  // Parametros globales para Fases 3-4.
+  const dcParams = {
+    base: fit.base, h: fit.h, rho: fit.rho,
+    vidaMediaDias: RATINGS.dc.vidaMediaDias, eta: RATINGS.dc.eta, sigma: RATINGS.dc.sigma,
+    n_matches: matches.length, fecha_corte: fechaCorte, fifa_corte: fifaCorte, ll: fit.ll,
+  };
+  fs.writeFileSync(path.join(PATHS.out, 'dc_params.json'), JSON.stringify(dcParams, null, 2) + '\n');
+  info(`Escrito ${path.join(PATHS.out, 'dc_params.json')}.`);
   info('=== FASE 2 completa ===');
 }
 
 const invocadoDirecto = import.meta.url === `file://${process.argv[1]}`;
 if (invocadoDirecto) {
-  main().catch((e) => {
-    console.error(`\nRATINGS ABORTADO: ${e.message}\n`);
-    process.exit(1);
-  });
+  try { main(); }
+  catch (e) { console.error(`\nRATINGS ABORTADO: ${e.message}\n`); process.exit(1); }
 }

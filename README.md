@@ -148,48 +148,61 @@ escribe lo recibido **sin rellenar** y se deja un `WARN` en el log.
 
 ---
 
-## Fase 2 — Ratings de fuerza (implementada)
+## Fase 2 — Fuerza por selección: Dixon-Coles sobre resultados (implementada)
 
-Produce `data/out/ratings.csv` → `team_id, team, elo, fifa_points, fuente, fecha_corte`.
+`npm run ratings` ajusta un modelo Poisson **Dixon-Coles** a los goles observados en
+`quali_results.csv` y produce:
+- `data/out/ratings.csv` → `team_id, team, confederacion, ataque, defensa, net, n_partidos, fifa_points, fuente, fecha_corte`
+- `data/out/dc_params.json` → `{ base, h, rho, ... }` (parámetros globales que usan las Fases 3–4).
 
-### Fuente primaria: Elo (eloratings.net)
-- URL del export: `https://www.eloratings.net/World.tsv` (configurable con
-  `ELO_SOURCE_URL`). El export se **cachea** en `data/raw/elo_source_latest.tsv`
-  (versionado, reproducible). Si el cache existe se usa; si no, se descarga.
-- **Verificación de formato en runtime (no se asume layout):** el parser detecta
-  la columna de Elo por sus valores —enteros en rango plausible `[800, 2300]` y
-  con alta diversidad (el Elo varía por equipo; una columna constante como un año
-  no se confunde)— y la columna de nombre por su texto. Si **no** encuentra una
-  columna de Elo plausible, si hay **ambigüedad**, o si llegan **menos de 100
-  filas**, el proceso **reporta y se detiene**. Nunca produce ratings a ciegas.
+### Modelo (en `src/lib/dixoncoles.js`)
+```
+log λ_local  = base + h + ataque_i + defensa_j      # i local, j visitante
+log λ_visita = base     + ataque_j + defensa_i
+```
+- `ataque_t` = tendencia goleadora; `defensa_t` = debilidad defensiva (mayor ⇒ le marcan más).
+- `h` = ventaja de local **estimada de los datos** (no un supuesto). `base` = nivel de goles.
+- Identificabilidad: `media(ataque)=media(defensa)=0`.
+- **Corrección Dixon-Coles** `τ(x,y;λ,μ,ρ)` para marcadores bajos (0/1), parámetro `ρ`.
+- **Ponderación temporal:** cada partido pesa `exp(−ξ·Δt)` con vida media `vidaMediaDias` (def. 730 d).
+- Ajuste por **ascenso de gradiente** con gradientes analíticos (incluida `τ`). Node puro, sin libs.
 
-### Fuente de control: ranking FIFA (puntos)
-- No hay endpoint libre limpio, así que se provee como archivo versionado
-  `data/raw/fifa_ranking.csv` (columnas reconocibles tipo `team,points[,date]`).
-  Fuente: *FIFA/Coca-Cola Men's World Ranking* (`fifa.com/ranking`); la **fecha de
-  corte** se toma de la columna `date` del archivo o de `FIFA_FECHA_CORTE`.
-- Es **control**, no entra al modelo. Si el archivo no está, `fifa_points` queda
-  vacío y se anota en el log (no se inventa).
+### Ancla de comparabilidad entre confederaciones (clave)
+Las eliminatorias son casi todas **intra-confederación**, así que el nivel relativo
+entre confederaciones es una **dirección plana** de la verosimilitud (no identificable
+solo con resultados). Se añade un **prior por equipo** sobre el rating neto
+`r = ataque − defensa`, atraído al valor implicado por el **ranking FIFA**
+(`z-score · sigma`, peso `eta`). Esto fija ese nivel. Es un **prior documentado**, no
+el dato principal. Los **anfitriones** (USA/México/Canadá, sin eliminatorias) toman su
+nivel **solo del ancla** → `fuente = ancla_fifa`.
 
-### Reconciliación de nombres
-Las fuentes externas nombran países distinto a API-Football. Se normaliza
-(minúsculas, sin acentos/puntuación) y se aplica un **mapa de alias documentado**
-(`src/lib/names.js`): p.ej. *United States→USA*, *South Korea→Korea Republic*,
-*Ivory Coast→Cote d'Ivoire*. Filas Elo que no corresponden a participantes se
-ignoran (son selecciones fuera del torneo); equipos del torneo que no casan con
-ningún Elo se **imputan** (ver abajo) y se listan en el log.
+### Parámetros (`config.RATINGS.dc`)
+| Param | Símbolo | Default | Rol |
+|---|---|---|---|
+| `vidaMediaDias` | (ξ=ln2/vm) | 730 | peso temporal (recientes pesan más) |
+| `eta` | η | 0.10 | peso del ancla FIFA |
+| `sigma` | σ | 0.50 | escala `target_net = z_fifa·σ` |
+| `ridge` | — | 0.01 | L2 suave sobre ataque/defensa |
+| `rhoMax` | — | 0.20 | cota de la corrección DC |
 
-### Imputación de Elo faltante
-Selecciones sin Elo (debutantes) → **percentil 5** (`MODELO.percentilImputacionElo`,
-nearest-rank) de la distribución de Elo de los equipos que **sí** casaron. Se
-marcan con `fuente = imputado_p5`. Nunca un número arbitrario silencioso.
+### Ranking FIFA (ancla)
+Archivo versionado `data/raw/fifa_ranking.csv` (`team,points[,date]`), casado por nombre
+a `team_id` (`src/lib/names.js`, con alias documentado). Si no se provee, se **avisa**:
+sin ancla no quedan calibrados ni el nivel entre confederaciones ni los anfitriones.
 
-> **Nota de entorno:** este sandbox de Claude Code on the web tiene una política
-> de red que **solo permite GitHub** (`eloratings.net`, `api-sports.io` y
-> `fifa.com` devuelven `host_not_allowed`). Por eso `extract` y la descarga de
-> Elo deben correrse en tu máquina (o dejas el `World.tsv` / `fifa_ranking.csv`
-> en `data/raw/`). El parser y el join están verificados con tests unitarios
-> offline.
+### Imputación (caso extremo)
+Finalista **sin partidos ni FIFA** → `net` = percentil bajo (`imputaPercentil`, def. 5) de
+los netos con datos, marcado `fuente = imputado_pX` y reportado. Nunca un número silencioso.
+
+### Verificación (tests offline, sin red)
+El estimador recupera fuerzas conocidas (correlación >0.9), recupera `h` y `base`, el
+**ancla fija el nivel** entre dos confederaciones desconectadas, y un equipo **sin
+partidos toma su nivel del ancla**. Integración completa validada con eliminatorias
+sintéticas + anfitrión sin partidos.
+
+> **Nota de entorno:** este sandbox solo permite GitHub. Por eso `extract` (API) y el
+> `fifa_ranking.csv` se preparan en tu máquina; el ajuste Dixon-Coles corre offline
+> sobre los CSV en `data/`.
 
 ---
 
