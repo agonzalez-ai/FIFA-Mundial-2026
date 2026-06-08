@@ -18,7 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { MODELO, TORNEO, PATHS } from './config.js';
 import { aCSV, objetosDesdeDelimitado } from './lib/csv.js';
-import { normalizar } from './lib/names.js';
+import { hfaDePartido } from './lib/venues.js';
 import { info, warn } from './lib/logger.js';
 
 // --- Nucleo matematico (puro) ----------------------------------------------
@@ -89,19 +89,8 @@ export function probabilidadesPartido(eloLocal, eloVisita, hfaElo = 0, params = 
   return { dr, sup, lambdaLocal, lambdaVisita, we: expectativaVictoria(dr), ...res };
 }
 
-// --- HFA: ventaja de localia por partido (decision acordada) ---------------
-// +65 Elo solo si el equipo LOCAL es anfitrion (USA/Mexico/Canada); 0 en sede
-// neutral. Caveat documentado: API-Football /fixtures no trae el PAIS de la sede,
-// solo la ciudad; usamos "local es anfitrion" como proxy (los anfitriones juegan
-// sus partidos de grupo en casa). Se refinara con un mapa sede->pais si hace falta.
-export function esAnfitrion(team, country, anfitriones = TORNEO.anfitriones) {
-  const set = new Set(anfitriones.map((a) => normalizar(a)));
-  return set.has(normalizar(team)) || set.has(normalizar(country || ''));
-}
-
-export function hfaPartido(localEsAnfitrion, params = MODELO) {
-  return localEsAnfitrion ? params.hfaEloAnfitrion : params.hfaEloNeutral;
-}
+// HFA por partido: +65 Elo al equipo que juega en su pais anfitrion (con signo).
+// Se determina con el mapa sede->pais de lib/venues.js (ver hfaDePartido).
 
 // --- Orquestacion: genera match_probs.csv (analitico, exacto) ---------------
 
@@ -134,8 +123,11 @@ function main() {
     if (!Number.isFinite(eloL) || !Number.isFinite(eloV)) {
       throw new Error(`Sin Elo para fixture ${f.fixture_id} (${f.home}/${f.away}). Revisa ratings.csv (Fase 2).`);
     }
-    const localAnf = esAnfitrion(nombrePorId.get(String(f.home_id)), countryPorId.get(String(f.home_id)));
-    const hfa = hfaPartido(localAnf);
+    const hfa = hfaDePartido(
+      nombrePorId.get(String(f.home_id)), countryPorId.get(String(f.home_id)),
+      nombrePorId.get(String(f.away_id)), countryPorId.get(String(f.away_id)),
+      f.venue_city, f.venue_name,
+    );
     const p = probabilidadesPartido(eloL, eloV, hfa);
     filas.push({
       fixture_id: f.fixture_id,

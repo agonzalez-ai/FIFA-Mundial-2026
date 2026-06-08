@@ -63,9 +63,13 @@ export const MODELO = {
 // Parametros de la SIMULACION Monte Carlo (Fase 4)
 // ---------------------------------------------------------------------------
 export const SIM = {
-  iteraciones: 50000, // N >= 50,000
-  // El orden EXACTO de desempates FIFA se verifica en runtime y se documenta
-  // en el README antes de codificar la Fase 4 (no se hardcodea de memoria).
+  // N >= 50,000 (override opcional con SIM_N para corridas rapidas de prueba)
+  iteraciones: Number(process.env.SIM_N) || 50000,
+  semilla: 20260611, // RNG sembrado (fecha de apertura) -> corridas reproducibles
+  maxGoles: 10, // truncado de la matriz de Poisson para match_probs analitico
+  // Orden de desempates FIFA 2026 VERIFICADO en runtime (ver README "Desempates"):
+  // h2h pts -> h2h dif -> h2h goles -> dif global -> goles global ->
+  // [fair-play OMITIDO: sin datos de tarjetas] -> ranking FIFA -> azar (contabilizado).
 };
 
 // ---------------------------------------------------------------------------

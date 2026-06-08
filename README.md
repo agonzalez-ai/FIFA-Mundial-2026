@@ -17,7 +17,7 @@ Carlo para producir probabilidades de avance por selección.
 | 1 | Extracción API-Football → CSVs normalizados | ✅ Implementada |
 | 2 | Ratings de fuerza (Elo + ranking FIFA) | ✅ Implementada |
 | 3 | Modelo de partido (Elo → xG → Poisson) | ✅ Implementada |
-| 4 | Simulación Monte Carlo + desempates FIFA | ⏳ Pendiente |
+| 4 | Simulación Monte Carlo + desempates FIFA | ✅ Implementada |
 
 Cada fase se revisa con el responsable **antes** de avanzar a la siguiente.
 
@@ -59,8 +59,9 @@ Variables de entorno (ver `.env.example`):
 
 ```bash
 npm run extract     # FASE 1: llama la API y escribe data/raw + data/out CSVs
-npm run ratings     # FASE 2: ratings de fuerza            (pendiente)
-npm run simulate    # FASE 3+4: modelo + Monte Carlo       (pendiente)
+npm run ratings     # FASE 2: ratings de fuerza -> ratings.csv
+npm run model       # FASE 3: match_probs.csv (analitico exacto)
+npm run simulate    # FASE 3+4: match_probs + group_probs + reporte.md (Monte Carlo)
 ```
 
 **La corrida de extracción está separada de la del modelo.** `extract` es lo
@@ -215,10 +216,57 @@ p_local, p_empate, p_visita, marcador_prob`.
 
 ---
 
-## Parámetros del modelo acordados (para Fases 2–4)
+## Fase 4 — Simulación Monte Carlo (implementada)
 
-Todos viven en `src/config.js`. Se reproducen aquí para auditoría; las fórmulas
-exactas se documentarán al implementar cada fase.
+`npm run simulate` lee **solo de disco** (cero llamadas a la API) y produce
+`match_probs.csv`, `group_probs.csv` y `reporte.md`.
+
+- **N = 50 000** iteraciones (override rápido para pruebas: `SIM_N=3000 npm run simulate`),
+  **RNG sembrado** (`SIM.semilla`) → corridas reproducibles.
+- Las λ de cada partido se **precomputan** una vez (deterministas dado Elo+HFA); cada
+  iteración solo muestrea Poisson de los 72 partidos, arma las 12 tablas y rankea.
+- **HFA por sede:** +65 Elo al equipo que juega en su país anfitrión usando el mapa
+  sede→país (`src/lib/venues.js`, 16 sedes verificadas); −65 al rival si el anfitrión
+  figura como visitante en su país; 0 en sede neutral.
+
+### Desempates — orden oficial FIFA 2026 (**verificado en runtime**)
+
+⚠️ **Cambio clave 2026:** el head-to-head se aplica **antes** que la diferencia de goles
+global (al revés que en 2022). Verificado contra múltiples fuentes (FIFA, ESPN, Yahoo,
+FourFourTwo, SofaScore) — ver "Fuentes". Implementado en `src/lib/standings.js`:
+
+**Dentro del grupo** (equipos igualados en puntos):
+1. Puntos head-to-head (solo partidos entre los empatados)
+2. Diferencia de goles head-to-head
+3. Goles a favor head-to-head
+4. Diferencia de goles global
+5. Goles a favor global
+6. _Fair-play / conducta_ — **OMITIDO** (no se simulan tarjetas; no se inventan datos)
+7. Ranking FIFA (puntos)
+8. _Sorteo_ → azar sembrado (último recurso, **contabilizado y reportado**)
+
+Los criterios 1–3 se **re-aplican** exclusivamente entre los equipos que sigan
+empatados (recursión), tal como especifica el reglamento.
+
+**Mejores terceros** (entre grupos, sin head-to-head): puntos → dif. goles → goles a
+favor → _[fair-play omitido]_ → ranking FIFA → azar. Avanzan los **8** mejores.
+
+### Salidas
+- `group_probs.csv` → `group, team_id, team, p_1, p_2, p_top2, p_mejor_tercero, p_avanza, p_eliminado`
+- `reporte.md` → tablas por grupo + supuestos + parámetros + fuentes + fechas de corte + uso de azar.
+
+### Invariantes verificadas (tests)
+Por grupo Σ`p_1`≈1 y Σ`p_top2`≈2; global Σ`p_avanza`≈32 y Σ`p_mejor_tercero`≈8;
+identidades por fila `p_avanza = p_top2 + p_mejor_tercero`, `p_eliminado = 1 − p_avanza`.
+Más tests del tiebreak: el ganador head-to-head queda por encima pese a peor dif. de
+goles global (comportamiento 2026).
+
+---
+
+## Parámetros del modelo (resumen — todos en `src/config.js`)
+
+Resumen de los parámetros libres, reproducidos aquí para auditoría rápida (el
+detalle y las fórmulas están en las secciones de cada fase).
 
 ### Ventaja de localía (HFA) — **decisión tomada**
 - Sede neutral (mayoría de partidos): **HFA = 0 Elo**.
@@ -239,9 +287,8 @@ exactas se documentarán al implementar cada fase.
   silencioso.
 
 ### Simulación (Fase 4)
-- **N = 50 000** iteraciones Monte Carlo.
-- Desempates oficiales FIFA: el **orden vigente se verifica en runtime** y se
-  documentará aquí antes de codificar — no se hardcodea de memoria.
+- **N = 50 000** iteraciones Monte Carlo, RNG sembrado (`SIM.semilla`).
+- Desempates oficiales FIFA 2026 verificados en runtime (ver sección Fase 4).
 
 ---
 
@@ -251,3 +298,21 @@ exactas se documentarán al implementar cada fase.
 2. Se loggea fecha/hora y endpoint de cada extracción.
 3. Si `predictions`/`odds` de la API vienen vacíos, **no se usan**; se anotan y se dejan fuera.
 4. El crudo se versiona para re-correr el modelo sin re-llamar la API.
+5. Datos no disponibles (p.ej. tarjetas para fair-play) se **omiten y documentan**, no se inventan.
+
+---
+
+## Fuentes y referencias
+
+- **Datos del torneo:** API-Football v3 (API-Sports), `league=1, season=2026`.
+- **Elo:** [eloratings.net](https://www.eloratings.net/) (World Football Elo).
+- **Ranking FIFA:** FIFA/Coca-Cola Men's World Ranking ([fifa.com/ranking](https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/groups-how-teams-qualify-tie-breakers)).
+- **Desempates FIFA 2026 (head-to-head primero), verificados:**
+  [FIFA](https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/groups-how-teams-qualify-tie-breakers) ·
+  [ESPN](https://www.espn.com/soccer/story/_/id/48703925/world-cup-group-stage-explained-tiebreakers-third-place-teams) ·
+  [Yahoo Sports](https://sports.yahoo.com/articles/group-stage-tiebreaker-rules-2026-094000319.html) ·
+  [FourFourTwo](https://www.fourfourtwo.com/competition/every-world-cup-2026-group-stage-tiebreaker-what-happens-if-teams-finish-with-the-same-points) ·
+  [SofaScore](https://www.sofascore.com/news/__trashed-21).
+
+> Fechas de corte concretas de Elo y ranking FIFA se registran por fila en
+> `ratings.csv` y se reflejan en `reporte.md` en cada corrida real.
