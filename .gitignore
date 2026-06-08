@@ -8,5 +8,9 @@ node_modules/
 *.log.local
 .DS_Store
 
+# Bitacoras de ejecucion (artefactos de runtime, no datos a versionar).
+# El directorio se conserva via logs/.gitkeep.
+logs/*.log
+
 # IMPORTANTE: data/raw SI se versiona a proposito (cache crudo reproducible).
 # data/out SI se versiona (resultados auditables del modelo).

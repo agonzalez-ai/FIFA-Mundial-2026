@@ -16,7 +16,7 @@ Carlo para producir probabilidades de avance por selección.
 |------|-------------|--------|
 | 1 | Extracción API-Football → CSVs normalizados | ✅ Implementada |
 | 2 | Ratings de fuerza (Elo + ranking FIFA) | ✅ Implementada |
-| 3 | Modelo de partido (Elo → xG → Poisson) | ⏳ Pendiente |
+| 3 | Modelo de partido (Elo → xG → Poisson) | ✅ Implementada |
 | 4 | Simulación Monte Carlo + desempates FIFA | ⏳ Pendiente |
 
 Cada fase se revisa con el responsable **antes** de avanzar a la siguiente.
@@ -165,6 +165,53 @@ marcan con `fuente = imputado_p5`. Nunca un número arbitrario silencioso.
 > Elo deben correrse en tu máquina (o dejas el `World.tsv` / `fifa_ranking.csv`
 > en `data/raw/`). El parser y el join están verificados con tests unitarios
 > offline.
+
+---
+
+## Fase 3 — Modelo de partido (implementada)
+
+`npm run model` lee `ratings.csv`, `fixtures.csv`, `teams.csv` y escribe
+`data/out/match_probs.csv` de forma **analítica exacta** (no Monte Carlo) desde la
+matriz de Poisson. Toda la matemática vive en `src/model.js` como **funciones puras**.
+
+### Fórmula exacta (auditable número a número)
+
+```
+dr            = (Elo_local + HFA) − Elo_visita        # diferencial efectivo
+We_local      = 1 / (1 + 10^(−dr/400))                # expectativa Elo (referencia)
+sup           = β · (dr / 400)                         # supremacía esperada en goles
+xG_local  (λ_L) = max(λ_min, λ₀ + sup/2)
+xG_visita (λ_V) = max(λ_min, λ₀ − sup/2)
+P(i,j)        = Poisson(i; λ_L) · Poisson(j; λ_V)      # marcador, equipos independientes
+```
+
+La matriz `P(i,j)` (0..10 goles por equipo) se **renormaliza a 1** (la cola
+> 10 se reparte proporcionalmente). De ella salen `P(local)=Σ_{i>j}`,
+`P(empate)=Σ_{i=j}`, `P(visita)=Σ_{i<j}` y el marcador más probable
+(`argmax P(i,j)`). Esto da W/D/L y diferencia de goles para los desempates (Fase 4).
+
+### Parámetros (en `src/config.js → MODELO`)
+
+| Parámetro | Símbolo | Valor | Origen |
+|-----------|---------|-------|--------|
+| Goles base por equipo | `λ₀` | **1.35** | media histórica goles/equipo en fase de grupos de Mundiales |
+| Escala Elo→goles | `β` | **1.40** | calibración inicial documentada (ajustable) |
+| Ventaja local anfitrión | `HFA` | **+65 Elo** | estándar de eloratings.net; **0** en sede neutral |
+| Piso de goles | `λ_min` | **0.15** | evita λ ≤ 0 en partidos muy disparejos |
+
+**HFA por partido:** +65 solo si el equipo local es anfitrión (USA/México/Canadá).
+*Caveat documentado:* `/fixtures` trae `venue.city` pero **no el país de la sede**;
+se usa "local es anfitrión" como proxy (los anfitriones juegan sus partidos de
+grupo en casa). Se refinará con un mapa sede→país en Fase 4 si hace falta.
+
+### Reproducibilidad de la simulación
+`src/lib/rng.js` ofrece un RNG **sembrable** (mulberry32) y `muestrearPoisson`
+(método de Knuth). La Fase 4 los usará con semilla fija para que cada corrida
+Monte Carlo sea re-ejecutable y auditable.
+
+### Salida `match_probs.csv`
+`fixture_id, group, home, away, hfa_elo, elo_home, elo_away, xg_home, xg_away,
+p_local, p_empate, p_visita, marcador_prob`.
 
 ---
 
