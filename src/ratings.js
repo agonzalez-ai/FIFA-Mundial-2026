@@ -83,13 +83,19 @@ function main() {
   const tiempos = crudos.map((m) => new Date(m.fecha).getTime()).filter((t) => Number.isFinite(t));
   const tmax = Math.max(...tiempos);
   const xi = Math.log(2) / RATINGS.dc.vidaMediaDias;
+  // Peso de cada partido = decaimiento temporal × importancia (oficial vs amistoso).
+  // Los amistosos pesan menos (config.RATINGS.dc.pesoAmistoso): se juegan con
+  // rotaciones y miden menos la fuerza real.
+  const esAmistoso = (conf) => /friendly|amistoso/i.test(conf || '');
   const matches = crudos.map((m) => {
     const t = new Date(m.fecha).getTime();
     const diasAtras = Number.isFinite(t) ? (tmax - t) / 86400000 : 0;
-    return { homeId: m.homeId, awayId: m.awayId, gh: m.gh, ga: m.ga, weight: Math.exp(-xi * diasAtras) };
+    const importancia = esAmistoso(m.conf) ? RATINGS.dc.pesoAmistoso : 1;
+    return { homeId: m.homeId, awayId: m.awayId, gh: m.gh, ga: m.ga, weight: Math.exp(-xi * diasAtras) * importancia };
   });
+  const nAmistosos = crudos.filter((m) => esAmistoso(m.conf)).length;
   const fechaCorte = new Date(tmax).toISOString().slice(0, 10);
-  info(`Partidos: ${matches.length} (corte ${fechaCorte}, vida media ${RATINGS.dc.vidaMediaDias}d).`);
+  info(`Partidos: ${matches.length} (${nAmistosos} amistosos al ${RATINGS.dc.pesoAmistoso}×; corte ${fechaCorte}, vida media ${RATINGS.dc.vidaMediaDias}d).`);
 
   // Indice de nombres para casar el ranking FIFA (finalistas + equipos de eliminatorias).
   const universoNombres = [

@@ -86,6 +86,7 @@ export const RATINGS = {
     lr: 0.05,            // tasa de aprendizaje del ascenso de gradiente
     iters: 5000,         // iteraciones de optimizacion
     rhoMax: 0.2,         // cota de |rho| (correccion Dixon-Coles)
+    pesoAmistoso: 0.34,  // los amistosos pesan ~1/3 de un partido oficial
   },
   // Imputacion para finalistas sin partidos NI ancla FIFA (caso extremo): percentil
   // bajo del rating neto. Marcado como 'imputado_pX'. Nunca un numero silencioso.

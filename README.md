@@ -84,8 +84,11 @@ npm run simulate    # FASE 3+4: match_probs + group_probs + reporte.md (Monte Ca
   los 72 partidos del Mundial 2026 con sedes y miles de partidos internacionales
   jugados. Cruda versionada en `data/raw/intl_results_<fecha>.csv`. Útil cuando el
   entorno solo permite GitHub. Fuerza estimada de **partidos reales** (eliminatorias +
-  amistosos + Nations League, ventana 2023–2026); el grafo queda **conectado**, así que
-  la comparabilidad entre confederaciones sale de partidos reales (sin ancla FIFA).
+  amistosos + Nations League, ventana 2023–2026), con **amistosos ponderados ~1/3**
+  (`pesoAmistoso`) y **ancla de ranking FIFA** (snapshot público de GitHub,
+  `data/raw/fifa_ranking.csv`) para acercar al consenso. Los amistosos por sí solos no
+  bastan: la campaña oficial reciente de Brasil fue mala, así que sin el ancla el
+  modelo lo deja a media tabla; el ancla lo devuelve a un nivel razonable.
 
 **La corrida de extracción está separada de la del modelo.** `extract` es lo
 único que consume cuota de API; `simulate` lee solo de disco (`data/raw`), así

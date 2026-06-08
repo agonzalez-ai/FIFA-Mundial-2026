@@ -148,7 +148,7 @@ function main() {
   ]);
 
   // --- reporte.md ---
-  escribirReporte(filasGrupo, { N, nPartidos, ctx, fit, fechaCorte: ratings[0]?.fecha_corte });
+  escribirReporte(filasGrupo, { N, nPartidos, ctx, fit, filasMatch, fechaCorte: ratings[0]?.fecha_corte });
 
   const segs = ((Date.now() - t0) / 1000).toFixed(1);
   if (ctx.empatesAzar) warn(`Empates resueltos por azar (ultimo recurso): ${ctx.empatesAzar} en ${N} iteraciones (${(ctx.empatesAzar / N).toFixed(6)} por corrida).`);
@@ -163,7 +163,7 @@ function escribir(nombre, filas, columnas) {
 }
 
 function escribirReporte(filasGrupo, meta) {
-  const { N, nPartidos, ctx, fit, fechaCorte } = meta;
+  const { N, nPartidos, ctx, fit, filasMatch, fechaCorte } = meta;
   const L = [];
   L.push('# Reporte — Pronóstico fase de grupos, Mundial FIFA 2026');
   L.push('');
@@ -206,6 +206,31 @@ function escribirReporte(filasGrupo, meta) {
       L.push(`| ${r.team} | ${pct(r.p_1)} | ${pct(r.p_2)} | ${pct(r.p_top2)} | ${pct(r.p_mejor_tercero)} | **${pct(r.p_avanza)}** | ${pct(r.p_eliminado)} |`);
     }
     L.push('');
+  }
+
+  // Pronostico por partido: goles esperados (xG) + probabilidades 1/X/2.
+  if (filasMatch && filasMatch.length) {
+    L.push('## Pronóstico por partido (goles esperados y resultado)');
+    L.push('');
+    L.push('`xG` = goles esperados por equipo (lo informativo). 1/X/2 = P(gana local / empate / gana visita). '
+      + 'El "marcador modal" es el resultado exacto más probable, que en fútbol casi siempre es bajo (1-0, 1-1); por eso prima el xG.');
+    L.push('');
+    const pg = {};
+    for (const m of filasMatch) (pg[m.group] ??= []).push(m);
+    for (const g of Object.keys(pg).sort()) {
+      L.push(`### Grupo ${g}`);
+      L.push('');
+      L.push('| Partido | xG | 1 | X | 2 | Favorito | Marcador modal |');
+      L.push('|---|:--:|--:|--:|--:|---|:--:|');
+      for (const m of pg[g]) {
+        const pl = Number(m.p_local), pe = Number(m.p_empate), pv = Number(m.p_visita);
+        const fav = pl >= pe && pl >= pv ? m.home : (pv >= pe ? m.away : 'Empate');
+        const favP = Math.max(pl, pe, pv);
+        const pct = (v) => `${(v * 100).toFixed(0)}%`;
+        L.push(`| ${m.home} vs ${m.away} | ${m.xg_home}–${m.xg_away} | ${pct(pl)} | ${pct(pe)} | ${pct(pv)} | ${fav} (${pct(favP)}) | ${m.marcador_prob} |`);
+      }
+      L.push('');
+    }
   }
   fs.writeFileSync(path.join(PATHS.out, 'reporte.md'), L.join('\n') + '\n');
   info(`Escrito ${path.join(PATHS.out, 'reporte.md')}.`);
