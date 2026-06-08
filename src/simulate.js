@@ -15,7 +15,7 @@ import path from 'node:path';
 import { SIM, TORNEO, PATHS, RATINGS } from './config.js';
 import { aCSV, objetosDesdeDelimitado } from './lib/csv.js';
 import { crearRng, muestrearPoisson } from './lib/rng.js';
-import { cargarFit, lambdasFixture, matrizMarcadores, resumenPartido, pTotalGE, muestrearMarcador } from './model.js';
+import { cargarFit, lambdasFixture, matrizMarcadores, resumenPartido, pTotalGE, marcadorConsistente } from './model.js';
 import { ordenarGrupo, rankearTerceros } from './lib/standings.js';
 import { info, warn } from './lib/logger.js';
 
@@ -97,10 +97,9 @@ function main() {
     warn(`Partidos de fase de grupos: ${nPartidos} (esperados ${TORNEO.partidosFaseGrupos}). Se simula lo disponible.`);
   }
 
-  // --- match_probs.csv (probabilidades exactas + xG + marcador simulado) ---
-  // RNG dedicado (independiente del Monte Carlo) para el marcador simulado: una
-  // realizacion plausible por partido, con variedad realista (incluye goleadas).
-  const rngRep = crearRng(SIM.semilla ^ 0x5f3759df);
+  // --- match_probs.csv (probabilidades exactas + xG + marcador de escenario) ---
+  // RNG dedicado (independiente del Monte Carlo) para el marcador consistente.
+  const rngSc = crearRng(SIM.semilla ^ 0x5f3759df);
   const filasMatch = matchMeta.map(({ f, signo, lambdaLocal, lambdaVisita }) => {
     const M = matrizMarcadores(lambdaLocal, lambdaVisita, SIM.maxGoles);
     const r = resumenPartido(M);
@@ -109,13 +108,12 @@ function main() {
       localia: signo, xg_home: lambdaLocal.toFixed(3), xg_away: lambdaVisita.toFixed(3),
       p_local: r.pLocal.toFixed(4), p_empate: r.pEmpate.toFixed(4), p_visita: r.pVisita.toFixed(4),
       p_mas25: pTotalGE(M, 3).toFixed(4),
-      marcador_modal: r.marcadorProb,
-      marcador_sim: muestrearMarcador(lambdaLocal, lambdaVisita, rngRep),
+      marcador: marcadorConsistente(M, lambdaLocal, lambdaVisita, rngSc),
     };
   });
   escribir('match_probs.csv', filasMatch, [
     'fixture_id', 'group', 'home', 'away', 'localia', 'xg_home', 'xg_away',
-    'p_local', 'p_empate', 'p_visita', 'p_mas25', 'marcador_modal', 'marcador_sim',
+    'p_local', 'p_empate', 'p_visita', 'p_mas25', 'marcador',
   ]);
 
   // --- Monte Carlo ---
@@ -216,23 +214,24 @@ function escribirReporte(filasGrupo, meta) {
 
   // Pronostico por partido: goles esperados (xG) + probabilidades 1/X/2.
   if (filasMatch && filasMatch.length) {
-    L.push('## Pronóstico por partido (goles esperados y marcador simulado)');
+    L.push('## Pronóstico por partido (goles esperados y marcador)');
     L.push('');
-    L.push('`xG` = goles esperados por equipo (lo informativo). 1/X/2 = P(gana local / empate / gana visita). '
-      + '`+2.5` = probabilidad de 3 o más goles. **`Marcador sim`** = una realización del modelo '
-      + '(marcador plausible con variedad real; NO es "el" resultado, el fútbol es aleatorio). '
-      + 'El marcador exacto *más probable* casi siempre es bajo (1-0, 1-1), por eso no se usa como predicción.');
+    L.push('`xG` = goles esperados por equipo (la proyección; refleja el potencial de goleada cuando hay mucha diferencia). '
+      + '1/X/2 = P(gana local / empate / gana visita). `+2.5` = probabilidad de 3+ goles. '
+      + '**`Marcador`** = un marcador plausible muestreado *condicionado a que ocurra el resultado más probable* '
+      + '(gana el favorito, o empate si es lo más probable); el margen varía de forma realista (parejo → 1-0/2-1; '
+      + 'mucha diferencia → a veces 3-0/4-1). Que gane el no-favorito es una sorpresa que vive en las probabilidades 1/X/2.');
     L.push('');
     const pg = {};
     for (const m of filasMatch) (pg[m.group] ??= []).push(m);
     for (const g of Object.keys(pg).sort()) {
       L.push(`### Grupo ${g}`);
       L.push('');
-      L.push('| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |');
+      L.push('| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |');
       L.push('|---|:--:|--:|--:|--:|--:|:--:|');
       for (const m of pg[g]) {
         const pct = (v) => `${(Number(v) * 100).toFixed(0)}%`;
-        L.push(`| ${m.home} vs ${m.away} | ${m.xg_home}–${m.xg_away} | ${pct(m.p_local)} | ${pct(m.p_empate)} | ${pct(m.p_visita)} | ${pct(m.p_mas25)} | **${m.marcador_sim}** |`);
+        L.push(`| ${m.home} vs ${m.away} | ${m.xg_home}–${m.xg_away} | ${pct(m.p_local)} | ${pct(m.p_empate)} | ${pct(m.p_visita)} | ${pct(m.p_mas25)} | **${m.marcador_pred}** |`);
       }
       L.push('');
     }

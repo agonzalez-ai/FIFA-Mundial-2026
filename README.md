@@ -252,16 +252,24 @@ de goles para los desempates (Fase 4).
 
 ### Salida `match_probs.csv`
 `fixture_id, group, home, away, localia, xg_home, xg_away, p_local, p_empate,
-p_visita, p_mas25, marcador_modal, marcador_sim`.
+p_visita, p_mas25, marcador`.
 
-- **`xg_home/xg_away`**: goles esperados por equipo (la proyección informativa).
+- **`xg_home/xg_away`**: goles esperados por equipo (la proyección; el potencial de
+  goleada se ve cuando hay mucha diferencia de xG).
+- **`p_local/p_empate/p_visita`**: probabilidades 1/X/2 (suman 1).
 - **`p_mas25`**: probabilidad de 3+ goles en el partido.
-- **`marcador_modal`**: resultado exacto más probable — en fútbol casi siempre bajo
-  (1-0, 1-1), por eso **no** se usa como "la predicción".
-- **`marcador_sim`**: una **realización** del modelo (muestreo Poisson sembrado). Da
-  marcadores con variedad real (2-1, 3-0, goleadas ocasionales). No es "el" resultado
-  —el fútbol es aleatorio—; es un marcador plausible. Con otra semilla sale otro
-  torneo igualmente válido.
+- **`marcador`**: un marcador plausible **muestreado condicionado a que ocurra el
+  resultado más probable** (gana el favorito, o empate si es lo más probable). El
+  margen varía de forma realista: partido parejo → 1-0/2-1; mucha diferencia → a veces
+  3-0/4-1. Es una realización con semilla (reproducible); con otra semilla sale otro
+  marcador igualmente válido. Que gane el **no**-favorito es una sorpresa que vive en
+  las probabilidades 1/X/2, no en este marcador puntual.
+
+> **Por qué no es "todo 1-0":** el marcador *más probable* de un Poisson siempre es
+> bajo (en fútbol la mayoría de partidos son 1-0/1-1/2-1; las goleadas son raras). Para
+> dar marcadores variados y consistentes con el favorito, se muestrea condicionado al
+> resultado más probable — así aparecen márgenes amplios y goleadas ocasionales sin
+> mostrar al no-favorito ganando.
 
 ---
 

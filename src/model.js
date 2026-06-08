@@ -64,10 +64,42 @@ export function pTotalGE(M, umbral) {
 }
 
 // Marcador SIMULADO: una realizacion del modelo (Poisson por equipo) con el RNG dado.
-// Produce variedad realista (2-1, 3-0, goleadas ocasionales). NO es "el" marcador:
-// el futbol es aleatorio; es una muestra plausible de la distribucion.
+// Util para generar un escenario completo del torneo (con upsets y goleadas), pero
+// NO sirve como prediccion por partido: puede contradecir al favorito.
 export function muestrearMarcador(lambdaLocal, lambdaVisita, rng) {
   return `${muestrearPoisson(lambdaLocal, rng)}-${muestrearPoisson(lambdaVisita, rng)}`;
+}
+
+// Marcador PREDICHO (consistente): el marcador exacto mas probable CONDICIONADO al
+// resultado mas probable (1/X/2). Asi el marcador siempre concuerda con el favorito
+// y el margen refleja la diferencia de nivel (favorito claro -> 2-0/3-0; parejo -> 1-0/1-1).
+export function marcadorPredicho(M) {
+  const { pLocal, pEmpate, pVisita } = resumenPartido(M);
+  const rel = (pEmpate >= pLocal && pEmpate >= pVisita) ? 'X' : (pLocal >= pVisita ? '1' : '2');
+  let best = { p: -1, i: 0, j: 0 };
+  for (let i = 0; i < M.length; i++) {
+    for (let j = 0; j < M[i].length; j++) {
+      const ok = (rel === '1' && i > j) || (rel === 'X' && i === j) || (rel === '2' && i < j);
+      if (ok && M[i][j] > best.p) best = { p: M[i][j], i, j };
+    }
+  }
+  return `${best.i}-${best.j}`;
+}
+
+// Marcador de ESCENARIO consistente: muestrea un marcador del modelo PERO condicionado
+// a que ocurra el resultado mas probable (1/X/2). Asi el favorito siempre gana (o se
+// da el empate cuando es lo mas probable), y el MARGEN varia de forma realista: en
+// partidos parejos sale 1-0/2-1, y cuando hay mucha diferencia aparecen 3-0/4-1.
+// Es una realizacion (con semilla, reproducible); las sorpresas/goleadas plenas viven
+// en las probabilidades, no en esta prediccion puntual.
+export function marcadorConsistente(M, lambdaLocal, lambdaVisita, rng, maxIntentos = 500) {
+  const { pLocal, pEmpate, pVisita } = resumenPartido(M);
+  const rel = (pEmpate >= pLocal && pEmpate >= pVisita) ? 'X' : (pLocal >= pVisita ? '1' : '2');
+  for (let t = 0; t < maxIntentos; t++) {
+    const h = muestrearPoisson(lambdaLocal, rng), a = muestrearPoisson(lambdaVisita, rng);
+    if ((rel === '1' && h > a) || (rel === 'X' && h === a) || (rel === '2' && h < a)) return `${h}-${a}`;
+  }
+  return marcadorPredicho(M); // respaldo si el muestreo no cae en el resultado (raro)
 }
 
 // --- Carga de la fuerza ajustada (Fase 2) ----------------------------------
@@ -108,8 +140,8 @@ function cargarCSV(nombre) {
   return objetosDesdeDelimitado(fs.readFileSync(ruta, 'utf8'), ',').rows;
 }
 
-// Construye el CSV de probabilidades por partido. Si se pasa `rng`, agrega un
-// marcador SIMULADO (una realizacion, con variedad/goleadas) por partido.
+// Construye el CSV de probabilidades por partido. `rng` (sembrado) genera el
+// marcador de escenario consistente (favorito respetado, margen variable).
 export function filasMatchProbs(fixturesGrupos, fit, infoEquipos, maxGoles = SIM.maxGoles, rng = null) {
   return fixturesGrupos.map((f) => {
     const { lambdaLocal, lambdaVisita, signo } = lambdasFixture(fit, f, infoEquipos);
@@ -120,8 +152,7 @@ export function filasMatchProbs(fixturesGrupos, fit, infoEquipos, maxGoles = SIM
       localia: signo, xg_home: lambdaLocal.toFixed(3), xg_away: lambdaVisita.toFixed(3),
       p_local: r.pLocal.toFixed(4), p_empate: r.pEmpate.toFixed(4), p_visita: r.pVisita.toFixed(4),
       p_mas25: pTotalGE(M, 3).toFixed(4),
-      marcador_modal: r.marcadorProb,
-      marcador_sim: rng ? muestrearMarcador(lambdaLocal, lambdaVisita, rng) : '',
+      marcador: rng ? marcadorConsistente(M, lambdaLocal, lambdaVisita, rng) : marcadorPredicho(M),
     };
   });
 }
@@ -149,7 +180,7 @@ function main() {
   const ruta = path.join(PATHS.out, 'match_probs.csv');
   fs.writeFileSync(ruta, aCSV(filas, [
     'fixture_id', 'group', 'home', 'away', 'localia', 'xg_home', 'xg_away',
-    'p_local', 'p_empate', 'p_visita', 'p_mas25', 'marcador_modal', 'marcador_sim',
+    'p_local', 'p_empate', 'p_visita', 'p_mas25', 'marcador',
   ]));
   info(`Escrito ${ruta} (${filas.length} partidos).`);
   info('=== FASE 3 completa ===');

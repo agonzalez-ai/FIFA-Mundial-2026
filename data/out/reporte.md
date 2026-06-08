@@ -1,6 +1,6 @@
 # Reporte — Pronóstico fase de grupos, Mundial FIFA 2026
 
-_Generado: 2026-06-08T21:56:44.772Z_
+_Generado: 2026-06-08T22:15:30.968Z_
 
 ## Supuestos y parámetros del modelo
 
@@ -136,139 +136,139 @@ P = probabilidad estimada (frecuencia en la simulación). "Avanza" = top-2 del g
 | Sweden | 16.1% | 22.4% | 38.6% | 18.2% | **56.8%** | 43.3% |
 | Tunisia | 15.1% | 22.1% | 37.2% | 18.8% | **56.0%** | 44.0% |
 
-## Pronóstico por partido (goles esperados y marcador simulado)
+## Pronóstico por partido (goles esperados y marcador)
 
-`xG` = goles esperados por equipo (lo informativo). 1/X/2 = P(gana local / empate / gana visita). `+2.5` = probabilidad de 3 o más goles. **`Marcador sim`** = una realización del modelo (marcador plausible con variedad real; NO es "el" resultado, el fútbol es aleatorio). El marcador exacto *más probable* casi siempre es bajo (1-0, 1-1), por eso no se usa como predicción.
+`xG` = goles esperados por equipo (la proyección; refleja el potencial de goleada cuando hay mucha diferencia). 1/X/2 = P(gana local / empate / gana visita). `+2.5` = probabilidad de 3+ goles. **`Marcador`** = un marcador plausible muestreado *condicionado a que ocurra el resultado más probable* (gana el favorito, o empate si es lo más probable); el margen varía de forma realista (parejo → 1-0/2-1; mucha diferencia → a veces 3-0/4-1). Que gane el no-favorito es una sorpresa que vive en las probabilidades 1/X/2.
 
 ### Grupo A
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| Mexico vs South Africa | 1.649–0.840 | 57% | 24% | 19% | 45% | **0-1** |
-| South Korea vs Czech Republic | 1.420–1.177 | 43% | 26% | 31% | 48% | **2-1** |
-| Czech Republic vs South Africa | 1.269–1.142 | 39% | 28% | 33% | 43% | **2-3** |
-| Mexico vs South Korea | 1.529–1.043 | 49% | 26% | 26% | 47% | **1-1** |
-| Mexico vs Czech Republic | 1.706–0.966 | 55% | 24% | 21% | 50% | **2-1** |
-| South Africa vs South Korea | 1.023–1.371 | 28% | 27% | 45% | 43% | **2-1** |
+| Mexico vs South Africa | 1.649–0.840 | 57% | 24% | 19% | 45% | **undefined** |
+| South Korea vs Czech Republic | 1.420–1.177 | 43% | 26% | 31% | 48% | **undefined** |
+| Czech Republic vs South Africa | 1.269–1.142 | 39% | 28% | 33% | 43% | **undefined** |
+| Mexico vs South Korea | 1.529–1.043 | 49% | 26% | 26% | 47% | **undefined** |
+| Mexico vs Czech Republic | 1.706–0.966 | 55% | 24% | 21% | 50% | **undefined** |
+| South Africa vs South Korea | 1.023–1.371 | 28% | 27% | 45% | 43% | **undefined** |
 
 ### Grupo B
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| Canada vs Bosnia and Herzegovina | 1.736–0.944 | 56% | 24% | 20% | 50% | **2-0** |
-| Qatar vs Switzerland | 1.106–1.544 | 27% | 25% | 47% | 49% | **1-1** |
-| Switzerland vs Bosnia and Herzegovina | 1.625–0.917 | 54% | 25% | 21% | 47% | **1-0** |
-| Canada vs Qatar | 1.649–1.138 | 49% | 24% | 26% | 53% | **0-3** |
-| Canada vs Switzerland | 1.361–1.311 | 38% | 26% | 36% | 50% | **1-1** |
-| Bosnia and Herzegovina vs Qatar | 1.112–1.410 | 30% | 27% | 44% | 46% | **4-1** |
+| Canada vs Bosnia and Herzegovina | 1.736–0.944 | 56% | 24% | 20% | 50% | **undefined** |
+| Qatar vs Switzerland | 1.106–1.544 | 27% | 25% | 47% | 49% | **undefined** |
+| Switzerland vs Bosnia and Herzegovina | 1.625–0.917 | 54% | 25% | 21% | 47% | **undefined** |
+| Canada vs Qatar | 1.649–1.138 | 49% | 24% | 26% | 53% | **undefined** |
+| Canada vs Switzerland | 1.361–1.311 | 38% | 26% | 36% | 50% | **undefined** |
+| Bosnia and Herzegovina vs Qatar | 1.112–1.410 | 30% | 27% | 44% | 46% | **undefined** |
 
 ### Grupo C
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| Argentina vs Algeria | 1.584–0.793 | 56% | 25% | 19% | 42% | **0-1** |
-| Austria vs Jordan | 1.519–1.061 | 48% | 26% | 26% | 48% | **2-1** |
-| Argentina vs Austria | 1.436–0.841 | 51% | 27% | 22% | 40% | **0-0** |
-| Jordan vs Algeria | 1.171–1.432 | 31% | 26% | 43% | 48% | **1-1** |
-| Algeria vs Austria | 1.151–1.347 | 32% | 27% | 41% | 46% | **3-0** |
-| Jordan vs Argentina | 0.731–1.787 | 15% | 23% | 63% | 46% | **0-2** |
+| Argentina vs Algeria | 1.584–0.793 | 56% | 25% | 19% | 42% | **undefined** |
+| Austria vs Jordan | 1.519–1.061 | 48% | 26% | 26% | 48% | **undefined** |
+| Argentina vs Austria | 1.436–0.841 | 51% | 27% | 22% | 40% | **undefined** |
+| Jordan vs Algeria | 1.171–1.432 | 31% | 26% | 43% | 48% | **undefined** |
+| Algeria vs Austria | 1.151–1.347 | 32% | 27% | 41% | 46% | **undefined** |
+| Jordan vs Argentina | 0.731–1.787 | 15% | 23% | 63% | 46% | **undefined** |
 
 ### Grupo D
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| United States vs Paraguay | 1.706–0.907 | 56% | 24% | 20% | 48% | **0-2** |
-| Australia vs Turkey | 1.233–1.209 | 37% | 27% | 36% | 44% | **1-0** |
-| United States vs Australia | 1.714–1.152 | 51% | 24% | 26% | 55% | **4-2** |
-| Turkey vs Paraguay | 1.203–0.971 | 41% | 29% | 30% | 37% | **0-0** |
-| United States vs Turkey | 1.895–1.248 | 53% | 22% | 25% | 61% | **0-0** |
-| Paraguay vs Australia | 0.878–1.110 | 29% | 31% | 41% | 32% | **0-1** |
+| United States vs Paraguay | 1.706–0.907 | 56% | 24% | 20% | 48% | **undefined** |
+| Australia vs Turkey | 1.233–1.209 | 37% | 27% | 36% | 44% | **undefined** |
+| United States vs Australia | 1.714–1.152 | 51% | 24% | 26% | 55% | **undefined** |
+| Turkey vs Paraguay | 1.203–0.971 | 41% | 29% | 30% | 37% | **undefined** |
+| United States vs Turkey | 1.895–1.248 | 53% | 22% | 25% | 61% | **undefined** |
+| Paraguay vs Australia | 0.878–1.110 | 29% | 31% | 41% | 32% | **undefined** |
 
 ### Grupo E
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| Belgium vs Egypt | 1.405–0.888 | 49% | 27% | 24% | 40% | **1-0** |
-| Iran vs New Zealand | 1.767–0.933 | 57% | 23% | 20% | 51% | **0-0** |
-| Belgium vs Iran | 1.434–1.107 | 45% | 26% | 29% | 47% | **1-1** |
-| New Zealand vs Egypt | 0.915–1.417 | 24% | 27% | 49% | 41% | **2-0** |
-| Egypt vs Iran | 0.952–1.163 | 30% | 30% | 41% | 35% | **2-2** |
-| New Zealand vs Belgium | 0.870–2.134 | 14% | 19% | 66% | 58% | **0-4** |
+| Belgium vs Egypt | 1.405–0.888 | 49% | 27% | 24% | 40% | **undefined** |
+| Iran vs New Zealand | 1.767–0.933 | 57% | 23% | 20% | 51% | **undefined** |
+| Belgium vs Iran | 1.434–1.107 | 45% | 26% | 29% | 47% | **undefined** |
+| New Zealand vs Egypt | 0.915–1.417 | 24% | 27% | 49% | 41% | **undefined** |
+| Egypt vs Iran | 0.952–1.163 | 30% | 30% | 41% | 35% | **undefined** |
+| New Zealand vs Belgium | 0.870–2.134 | 14% | 19% | 66% | 58% | **undefined** |
 
 ### Grupo F
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| Brazil vs Morocco | 1.181–1.048 | 39% | 29% | 32% | 39% | **2-1** |
-| Haiti vs Scotland | 1.168–1.576 | 28% | 25% | 47% | 52% | **1-3** |
-| Scotland vs Morocco | 0.920–1.400 | 25% | 27% | 48% | 41% | **1-1** |
-| Brazil vs Haiti | 2.022–0.875 | 64% | 21% | 15% | 55% | **2-0** |
-| Scotland vs Brazil | 0.917–1.571 | 22% | 25% | 53% | 45% | **1-5** |
-| Morocco vs Haiti | 1.802–0.878 | 59% | 23% | 18% | 50% | **0-1** |
+| Brazil vs Morocco | 1.181–1.048 | 39% | 29% | 32% | 39% | **undefined** |
+| Haiti vs Scotland | 1.168–1.576 | 28% | 25% | 47% | 52% | **undefined** |
+| Scotland vs Morocco | 0.920–1.400 | 25% | 27% | 48% | 41% | **undefined** |
+| Brazil vs Haiti | 2.022–0.875 | 64% | 21% | 15% | 55% | **undefined** |
+| Scotland vs Brazil | 0.917–1.571 | 22% | 25% | 53% | 45% | **undefined** |
+| Morocco vs Haiti | 1.802–0.878 | 59% | 23% | 18% | 50% | **undefined** |
 
 ### Grupo G
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| Spain vs Cape Verde | 1.890–0.799 | 63% | 22% | 15% | 50% | **2-1** |
-| Saudi Arabia vs Uruguay | 0.702–1.142 | 23% | 31% | 46% | 28% | **2-0** |
-| Spain vs Saudi Arabia | 1.712–0.798 | 59% | 24% | 17% | 46% | **1-2** |
-| Uruguay vs Cape Verde | 1.261–0.704 | 50% | 30% | 21% | 31% | **3-0** |
-| Cape Verde vs Saudi Arabia | 0.919–1.013 | 32% | 31% | 37% | 31% | **2-1** |
-| Uruguay vs Spain | 0.993–1.310 | 28% | 28% | 44% | 40% | **2-3** |
+| Spain vs Cape Verde | 1.890–0.799 | 63% | 22% | 15% | 50% | **undefined** |
+| Saudi Arabia vs Uruguay | 0.702–1.142 | 23% | 31% | 46% | 28% | **undefined** |
+| Spain vs Saudi Arabia | 1.712–0.798 | 59% | 24% | 17% | 46% | **undefined** |
+| Uruguay vs Cape Verde | 1.261–0.704 | 50% | 30% | 21% | 31% | **undefined** |
+| Cape Verde vs Saudi Arabia | 0.919–1.013 | 32% | 31% | 37% | 31% | **undefined** |
+| Uruguay vs Spain | 0.993–1.310 | 28% | 28% | 44% | 40% | **undefined** |
 
 ### Grupo H
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| Portugal vs DR Congo | 1.449–0.791 | 53% | 27% | 20% | 39% | **5-0** |
-| Uzbekistan vs Colombia | 0.802–1.408 | 21% | 27% | 51% | 38% | **2-1** |
-| Portugal vs Uzbekistan | 1.562–0.851 | 54% | 25% | 20% | 43% | **0-1** |
-| Colombia vs DR Congo | 1.306–0.745 | 50% | 29% | 21% | 34% | **1-2** |
-| Colombia vs Portugal | 1.313–1.373 | 36% | 26% | 38% | 50% | **1-3** |
-| DR Congo vs Uzbekistan | 0.848–0.846 | 33% | 34% | 33% | 24% | **3-2** |
+| Portugal vs DR Congo | 1.449–0.791 | 53% | 27% | 20% | 39% | **undefined** |
+| Uzbekistan vs Colombia | 0.802–1.408 | 21% | 27% | 51% | 38% | **undefined** |
+| Portugal vs Uzbekistan | 1.562–0.851 | 54% | 25% | 20% | 43% | **undefined** |
+| Colombia vs DR Congo | 1.306–0.745 | 50% | 29% | 21% | 34% | **undefined** |
+| Colombia vs Portugal | 1.313–1.373 | 36% | 26% | 38% | 50% | **undefined** |
+| DR Congo vs Uzbekistan | 0.848–0.846 | 33% | 34% | 33% | 24% | **undefined** |
 
 ### Grupo I
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| England vs Croatia | 1.272–1.014 | 42% | 28% | 30% | 40% | **1-1** |
-| Ghana vs Panama | 1.029–1.327 | 29% | 28% | 43% | 42% | **1-2** |
-| England vs Ghana | 1.678–0.728 | 60% | 24% | 16% | 43% | **1-1** |
-| Panama vs Croatia | 1.006–1.433 | 26% | 27% | 47% | 44% | **0-2** |
-| Panama vs England | 0.862–1.540 | 21% | 26% | 53% | 43% | **2-1** |
-| Croatia vs Ghana | 1.561–0.850 | 54% | 25% | 20% | 43% | **1-0** |
+| England vs Croatia | 1.272–1.014 | 42% | 28% | 30% | 40% | **undefined** |
+| Ghana vs Panama | 1.029–1.327 | 29% | 28% | 43% | 42% | **undefined** |
+| England vs Ghana | 1.678–0.728 | 60% | 24% | 16% | 43% | **undefined** |
+| Panama vs Croatia | 1.006–1.433 | 26% | 27% | 47% | 44% | **undefined** |
+| Panama vs England | 0.862–1.540 | 21% | 26% | 53% | 43% | **undefined** |
+| Croatia vs Ghana | 1.561–0.850 | 54% | 25% | 20% | 43% | **undefined** |
 
 ### Grupo J
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| Germany vs Curaçao | 1.995–0.922 | 62% | 21% | 17% | 56% | **1-2** |
-| Ivory Coast vs Ecuador | 0.813–0.844 | 32% | 35% | 34% | 23% | **0-2** |
-| Germany vs Ivory Coast | 1.421–1.022 | 46% | 27% | 27% | 44% | **0-1** |
-| Ecuador vs Curaçao | 1.185–0.733 | 47% | 31% | 23% | 30% | **0-1** |
-| Curaçao vs Ivory Coast | 0.892–1.389 | 24% | 27% | 48% | 40% | **3-1** |
-| Ecuador vs Germany | 0.873–1.169 | 27% | 30% | 43% | 33% | **1-0** |
+| Germany vs Curaçao | 1.995–0.922 | 62% | 21% | 17% | 56% | **undefined** |
+| Ivory Coast vs Ecuador | 0.813–0.844 | 32% | 35% | 34% | 23% | **undefined** |
+| Germany vs Ivory Coast | 1.421–1.022 | 46% | 27% | 27% | 44% | **undefined** |
+| Ecuador vs Curaçao | 1.185–0.733 | 47% | 31% | 23% | 30% | **undefined** |
+| Curaçao vs Ivory Coast | 0.892–1.389 | 24% | 27% | 48% | 40% | **undefined** |
+| Ecuador vs Germany | 0.873–1.169 | 27% | 30% | 43% | 33% | **undefined** |
 
 ### Grupo K
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| France vs Senegal | 1.409–0.951 | 48% | 27% | 25% | 42% | **3-1** |
-| Iraq vs Norway | 1.223–1.382 | 33% | 26% | 41% | 48% | **2-2** |
-| France vs Iraq | 1.545–0.728 | 57% | 26% | 18% | 40% | **2-0** |
-| Norway vs Senegal | 1.260–1.597 | 30% | 25% | 45% | 54% | **1-3** |
-| Norway vs France | 1.062–1.995 | 20% | 21% | 59% | 59% | **0-4** |
-| Senegal vs Iraq | 1.237–0.863 | 45% | 29% | 26% | 35% | **1-1** |
+| France vs Senegal | 1.409–0.951 | 48% | 27% | 25% | 42% | **undefined** |
+| Iraq vs Norway | 1.223–1.382 | 33% | 26% | 41% | 48% | **undefined** |
+| France vs Iraq | 1.545–0.728 | 57% | 26% | 18% | 40% | **undefined** |
+| Norway vs Senegal | 1.260–1.597 | 30% | 25% | 45% | 54% | **undefined** |
+| Norway vs France | 1.062–1.995 | 20% | 21% | 59% | 59% | **undefined** |
+| Senegal vs Iraq | 1.237–0.863 | 45% | 29% | 26% | 35% | **undefined** |
 
 ### Grupo L
 
-| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |
+| Partido | xG | 1 | X | 2 | +2.5 | **Marcador** |
 |---|:--:|--:|--:|--:|--:|:--:|
-| Netherlands vs Japan | 1.617–1.350 | 44% | 24% | 32% | 57% | **2-7** |
-| Sweden vs Tunisia | 1.214–1.185 | 37% | 28% | 35% | 43% | **2-1** |
-| Netherlands vs Sweden | 1.858–1.203 | 53% | 23% | 25% | 59% | **0-3** |
-| Tunisia vs Japan | 1.032–1.361 | 28% | 27% | 44% | 43% | **1-0** |
-| Japan vs Sweden | 1.706–1.324 | 46% | 24% | 30% | 58% | **2-1** |
-| Tunisia vs Netherlands | 0.938–1.482 | 24% | 26% | 50% | 44% | **4-4** |
+| Netherlands vs Japan | 1.617–1.350 | 44% | 24% | 32% | 57% | **undefined** |
+| Sweden vs Tunisia | 1.214–1.185 | 37% | 28% | 35% | 43% | **undefined** |
+| Netherlands vs Sweden | 1.858–1.203 | 53% | 23% | 25% | 59% | **undefined** |
+| Tunisia vs Japan | 1.032–1.361 | 28% | 27% | 44% | 43% | **undefined** |
+| Japan vs Sweden | 1.706–1.324 | 46% | 24% | 30% | 58% | **undefined** |
+| Tunisia vs Netherlands | 0.938–1.482 | 24% | 26% | 50% | 44% | **undefined** |
 
