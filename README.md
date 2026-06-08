@@ -21,9 +21,9 @@ probabilidades de avance por selección.
 | Fase | Descripción | Estado |
 |------|-------------|--------|
 | 1 | Extracción: **resultados de eliminatorias** + estructura del torneo final | ✅ Implementada |
-| 2 | Fuerza por selección: **Dixon-Coles** sobre resultados + ancla FIFA | 🔄 En desarrollo |
-| 3 | Modelo de partido (fuerza → xG → Poisson) | ♻️ Se reaprovecha (cambia origen del xG) |
-| 4 | Simulación Monte Carlo + desempates FIFA 2026 | ✅ Sin cambios |
+| 2 | Fuerza por selección: **Dixon-Coles** sobre resultados + ancla FIFA | ✅ Implementada |
+| 3 | Modelo de partido (fuerza → xG → Poisson) | ✅ Implementada (xG desde Dixon-Coles) |
+| 4 | Simulación Monte Carlo + desempates FIFA 2026 | ✅ Implementada |
 
 Cada fase se revisa con el responsable **antes** de avanzar a la siguiente.
 
@@ -208,48 +208,36 @@ sintéticas + anfitrión sin partidos.
 
 ## Fase 3 — Modelo de partido (implementada)
 
-`npm run model` lee `ratings.csv`, `fixtures.csv`, `teams.csv` y escribe
-`data/out/match_probs.csv` de forma **analítica exacta** (no Monte Carlo) desde la
-matriz de Poisson. Toda la matemática vive en `src/model.js` como **funciones puras**.
+`npm run model` lee `ratings.csv` + `dc_params.json` (Fase 2), `fixtures.csv` y
+`teams.csv`, y escribe `data/out/match_probs.csv` de forma **analítica exacta** (no
+Monte Carlo) desde la matriz de Poisson. La matemática vive en `src/model.js` como
+**funciones puras**; el xG sale del ajuste Dixon-Coles, **no de un Elo**.
 
 ### Fórmula exacta (auditable número a número)
 
 ```
-dr            = (Elo_local + HFA) − Elo_visita        # diferencial efectivo
-We_local      = 1 / (1 + 10^(−dr/400))                # expectativa Elo (referencia)
-sup           = β · (dr / 400)                         # supremacía esperada en goles
-xG_local  (λ_L) = max(λ_min, λ₀ + sup/2)
-xG_visita (λ_V) = max(λ_min, λ₀ − sup/2)
-P(i,j)        = Poisson(i; λ_L) · Poisson(j; λ_V)      # marcador, equipos independientes
+xG_local  (λ_L) = exp(base + localía·h + ataque_local  + defensa_visita)
+xG_visita (λ_V) = exp(base             + ataque_visita + defensa_local)
+P(i,j)          = Poisson(i; λ_L) · Poisson(j; λ_V)   # marcador, equipos independientes
 ```
+- `base`, `h` (ventaja de local) y `ataque/defensa` por equipo vienen del ajuste de
+  la **Fase 2** (`dc_params.json` + `ratings.csv`).
+- **`localía` ∈ {+1, 0, −1}**: +1 si el local es anfitrión jugando en su país, −1 si
+  lo es el visitante, 0 en sede neutral (mapa sede→país de `src/lib/venues.js`, con
+  las 16 sedes verificadas). En el Mundial casi todo es neutral.
 
-La matriz `P(i,j)` (0..10 goles por equipo) se **renormaliza a 1** (la cola
-> 10 se reparte proporcionalmente). De ella salen `P(local)=Σ_{i>j}`,
-`P(empate)=Σ_{i=j}`, `P(visita)=Σ_{i<j}` y el marcador más probable
-(`argmax P(i,j)`). Esto da W/D/L y diferencia de goles para los desempates (Fase 4).
-
-### Parámetros (en `src/config.js → MODELO`)
-
-| Parámetro | Símbolo | Valor | Origen |
-|-----------|---------|-------|--------|
-| Goles base por equipo | `λ₀` | **1.35** | media histórica goles/equipo en fase de grupos de Mundiales |
-| Escala Elo→goles | `β` | **1.40** | calibración inicial documentada (ajustable) |
-| Ventaja local anfitrión | `HFA` | **+65 Elo** | estándar de eloratings.net; **0** en sede neutral |
-| Piso de goles | `λ_min` | **0.15** | evita λ ≤ 0 en partidos muy disparejos |
-
-**HFA por partido:** +65 solo si el equipo local es anfitrión (USA/México/Canadá).
-*Caveat documentado:* `/fixtures` trae `venue.city` pero **no el país de la sede**;
-se usa "local es anfitrión" como proxy (los anfitriones juegan sus partidos de
-grupo en casa). Se refinará con un mapa sede→país en Fase 4 si hace falta.
+La matriz `P(i,j)` (0..10 goles) se **renormaliza a 1** (la cola > 10 se reparte
+proporcionalmente). De ella salen `P(local)=Σ_{i>j}`, `P(empate)=Σ_{i=j}`,
+`P(visita)=Σ_{i<j}` y el marcador modal (`argmax P(i,j)`). Esto da W/D/L y diferencia
+de goles para los desempates (Fase 4).
 
 ### Reproducibilidad de la simulación
 `src/lib/rng.js` ofrece un RNG **sembrable** (mulberry32) y `muestrearPoisson`
-(método de Knuth). La Fase 4 los usará con semilla fija para que cada corrida
-Monte Carlo sea re-ejecutable y auditable.
+(método de Knuth), que la Fase 4 usa con semilla fija.
 
 ### Salida `match_probs.csv`
-`fixture_id, group, home, away, hfa_elo, elo_home, elo_away, xg_home, xg_away,
-p_local, p_empate, p_visita, marcador_prob`.
+`fixture_id, group, home, away, localia, xg_home, xg_away, p_local, p_empate,
+p_visita, marcador_prob`.
 
 ---
 
@@ -260,11 +248,12 @@ p_local, p_empate, p_visita, marcador_prob`.
 
 - **N = 50 000** iteraciones (override rápido para pruebas: `SIM_N=3000 npm run simulate`),
   **RNG sembrado** (`SIM.semilla`) → corridas reproducibles.
-- Las λ de cada partido se **precomputan** una vez (deterministas dado Elo+HFA); cada
-  iteración solo muestrea Poisson de los 72 partidos, arma las 12 tablas y rankea.
-- **HFA por sede:** +65 Elo al equipo que juega en su país anfitrión usando el mapa
-  sede→país (`src/lib/venues.js`, 16 sedes verificadas); −65 al rival si el anfitrión
-  figura como visitante en su país; 0 en sede neutral.
+- Las λ de cada partido se **precomputan** una vez (deterministas dada la fuerza +
+  localía); cada iteración solo muestrea Poisson de los 72 partidos, arma las 12
+  tablas y rankea.
+- **Localía por sede:** se aplica la ventaja de local `h` (estimada en Fase 2) al
+  equipo que juega en su país anfitrión usando el mapa sede→país (`src/lib/venues.js`,
+  16 sedes verificadas); 0 en sede neutral.
 
 ### Desempates — orden oficial FIFA 2026 (**verificado en runtime**)
 
@@ -305,23 +294,20 @@ goles global (comportamiento 2026).
 Resumen de los parámetros libres, reproducidos aquí para auditoría rápida (el
 detalle y las fórmulas están en las secciones de cada fase).
 
-### Ventaja de localía (HFA) — **decisión tomada**
-- Sede neutral (mayoría de partidos): **HFA = 0 Elo**.
-- Anfitrión (USA/México/Canadá) jugando en su país: **HFA = +65 Elo**
-  (valor estándar de ventaja de local de eloratings.net).
-
-### Modelo de partido (Fase 3, propuesto)
-- `λ₀ = 1.35` — goles esperados/equipo entre rivales de igual Elo (media histórica
-  de fase de grupos de Mundiales).
-- Diferencial: `dr = (Elo_local + HFA) − Elo_visita`.
-- Supremacía esperada: `sup = β · (dr / 400)`, con `β = 1.40` (calibrable).
-- `λ_local = max(0.15, λ₀ + sup/2)`, `λ_visita = max(0.15, λ₀ − sup/2)`.
+### Fuerza y modelo de partido (Fases 2–3)
+- Fuerza `ataque/defensa` por equipo + `base` + `h` ajustados por **Dixon-Coles** a
+  los resultados de eliminatorias (`config.RATINGS.dc`; ver Fase 2).
+- `log λ_local = base + localía·h + ataque_local + defensa_visita` (Fase 3).
 - Marcador ~ **Poisson independiente** por equipo → W/D/L y diferencia de goles.
 
-### Imputación de Elo faltante (Fase 2)
-- Selecciones sin Elo (debutantes): **percentil 5** de la distribución de Elo de
-  los 48 clasificados, marcado como `fuente = imputado_p5`. Nunca un número
-  silencioso.
+### Ventaja de localía — **decisión tomada**
+- Sede neutral (mayoría de partidos): **localía = 0** (sin ventaja).
+- Anfitrión (USA/México/Canadá) en su país: se aplica la **`h` estimada** de los datos.
+
+### Ancla e imputación (Fase 2)
+- Ancla FIFA (prior sobre `net`) para comparabilidad entre confederaciones.
+- Finalista sin partidos ni FIFA: `net` por **percentil bajo**, marcado
+  `fuente = imputado_pX`. Nunca un número silencioso.
 
 ### Simulación (Fase 4)
 - **N = 50 000** iteraciones Monte Carlo, RNG sembrado (`SIM.semilla`).
@@ -341,9 +327,9 @@ detalle y las fórmulas están en las secciones de cada fase).
 
 ## Fuentes y referencias
 
-- **Datos del torneo:** API-Football v3 (API-Sports), `league=1, season=2026`.
-- **Elo:** [eloratings.net](https://www.eloratings.net/) (World Football Elo).
-- **Ranking FIFA:** FIFA/Coca-Cola Men's World Ranking ([fifa.com/ranking](https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/groups-how-teams-qualify-tie-breakers)).
+- **Resultados de eliminatorias + torneo final:** API-Football v3 (API-Sports).
+- **Fuerza:** ajuste Dixon-Coles propio sobre esos resultados (no hay fuente externa de rating).
+- **Ranking FIFA (ancla):** FIFA/Coca-Cola Men's World Ranking ([fifa.com/ranking](https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/groups-how-teams-qualify-tie-breakers)).
 - **Desempates FIFA 2026 (head-to-head primero), verificados:**
   [FIFA](https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/groups-how-teams-qualify-tie-breakers) ·
   [ESPN](https://www.espn.com/soccer/story/_/id/48703925/world-cup-group-stage-explained-tiebreakers-third-place-teams) ·
@@ -351,5 +337,5 @@ detalle y las fórmulas están en las secciones de cada fase).
   [FourFourTwo](https://www.fourfourtwo.com/competition/every-world-cup-2026-group-stage-tiebreaker-what-happens-if-teams-finish-with-the-same-points) ·
   [SofaScore](https://www.sofascore.com/news/__trashed-21).
 
-> Fechas de corte concretas de Elo y ranking FIFA se registran por fila en
-> `ratings.csv` y se reflejan en `reporte.md` en cada corrida real.
+> Fechas de corte (último partido de eliminatoria usado y ranking FIFA) se registran
+> en `ratings.csv` / `dc_params.json` y se reflejan en `reporte.md` en cada corrida real.

@@ -8,7 +8,6 @@
 // Fuente de sedes: anuncio oficial FIFA de las 16 sedes del Mundial 2026.
 
 import { normalizar } from './names.js';
-import { MODELO } from '../config.js';
 
 // Palabras clave (ciudad o estadio) -> pais. Se casa por substring normalizado,
 // para tolerar variantes de venue_city/venue_name de API-Football.
@@ -56,12 +55,13 @@ export function paisAnfitrionDeEquipo(team = '', country = '') {
   return '';
 }
 
-// HFA con signo, en puntos Elo, a sumar al LOCAL: +65 si el local juega en su
-// pais anfitrion; -65 si el VISITANTE es anfitrion jugando en su pais; 0 si no.
-export function hfaDePartido(home, homeCountry, away, awayCountry, venueCity, venueName, params = MODELO) {
+// Signo de la localia: +1 si el LOCAL juega en su pais anfitrion; -1 si el
+// VISITANTE es anfitrion jugando en su pais; 0 si es sede neutral. La MAGNITUD de
+// la ventaja la pone el modelo (la `h` estimada por Dixon-Coles), no este modulo.
+export function signoLocalia(home, homeCountry, away, awayCountry, venueCity, venueName) {
   const sede = paisDeSede(venueCity, venueName);
   if (!sede) return 0;
-  if (paisAnfitrionDeEquipo(home, homeCountry) === sede) return params.hfaEloAnfitrion;
-  if (paisAnfitrionDeEquipo(away, awayCountry) === sede) return -params.hfaEloAnfitrion;
+  if (paisAnfitrionDeEquipo(home, homeCountry) === sede) return 1;
+  if (paisAnfitrionDeEquipo(away, awayCountry) === sede) return -1;
   return 0;
 }

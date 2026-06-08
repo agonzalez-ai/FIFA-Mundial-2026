@@ -51,36 +51,12 @@ export const TORNEO = {
   // Avanzan: 2 primeros de cada grupo (24) + 8 mejores terceros = 32.
   avanzanPorGrupo: 2,
   mejoresTerceros: 8,
-  // Paises anfitriones (para la ventaja de localia, ver MODELO.hfaEloAnfitrion).
+  // Paises anfitriones: solo ellos reciben ventaja de local (en su pais).
   anfitriones: ['USA', 'Mexico', 'Canada'],
 };
 
-// ---------------------------------------------------------------------------
-// Parametros del MODELO de partido (Fase 3). Fuentes documentadas en README.
-// ---------------------------------------------------------------------------
-export const MODELO = {
-  // Goles esperados por equipo en un partido entre rivales de igual Elo.
-  // ~1.35 = media historica de goles/equipo en fase de grupos de Mundiales.
-  lambda0: 1.35,
-
-  // Escala que convierte el diferencial de Elo normalizado (dr/400) en
-  // supremacia esperada de goles. Valor inicial 1.40 (calibrable).
-  beta: 1.40,
-
-  // Ventaja de localia EN PUNTOS ELO. Decision del usuario:
-  //  - Sede neutral (la mayoria de partidos): 0.
-  //  - Anfitrion (USA/Mexico/Canada) jugando en su propio pais: +65.
-  // 65 es el valor estandar de ventaja de local de eloratings.net.
-  hfaEloAnfitrion: 65,
-  hfaEloNeutral: 0,
-
-  // Piso de goles esperados para evitar lambdas <= 0 en partidos muy disparejos.
-  lambdaMin: 0.15,
-
-  // Imputacion de Elo para selecciones sin dato (debutantes): percentil 5
-  // de la distribucion de Elo de los 48 clasificados. Marcado como 'imputado_p5'.
-  percentilImputacionElo: 5,
-};
+// La fuerza de partido (xG) ya NO usa Elo: se deriva del ajuste Dixon-Coles de la
+// Fase 2 (ataque/defensa + base + ventaja de local h). Ver RATINGS.dc mas abajo.
 
 // ---------------------------------------------------------------------------
 // Parametros de la SIMULACION Monte Carlo (Fase 4)

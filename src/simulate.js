@@ -12,11 +12,10 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { SIM, MODELO, TORNEO, PATHS, RATINGS } from './config.js';
+import { SIM, TORNEO, PATHS, RATINGS } from './config.js';
 import { aCSV, objetosDesdeDelimitado } from './lib/csv.js';
 import { crearRng, muestrearPoisson } from './lib/rng.js';
-import { hfaDePartido } from './lib/venues.js';
-import { lambdasDesdeElo, matrizMarcadores, resumenPartido } from './model.js';
+import { cargarFit, lambdasFixture, matrizMarcadores, resumenPartido } from './model.js';
 import { ordenarGrupo, rankearTerceros } from './lib/standings.js';
 import { info, warn } from './lib/logger.js';
 
@@ -26,12 +25,12 @@ function cargarCSV(nombre) {
   return objetosDesdeDelimitado(fs.readFileSync(ruta, 'utf8'), ',').rows;
 }
 
-// Prepara la estructura del torneo a partir de los CSV. Funcion (semi)pura: no I/O.
-export function prepararTorneo(ratings, fixtures, teams, groups) {
-  const eloPorId = new Map(ratings.map((r) => [String(r.team_id), Number(r.elo)]));
+// Prepara la estructura del torneo a partir de los CSV + el ajuste (fit) de Fase 2.
+// Funcion (semi)pura: no I/O. Las lambdas se PRECOMPUTAN (deterministas por fuerza+localia).
+export function prepararTorneo(ratings, fixtures, teams, groups, fit) {
   const fifaPorId = new Map(ratings.map((r) => [String(r.team_id), Number(r.fifa_points)]));
-  const countryPorId = new Map(teams.map((t) => [String(t.team_id), t.country]));
   const nombrePorId = new Map(teams.map((t) => [String(t.team_id), t.team]));
+  const infoEquipos = new Map(teams.map((t) => [String(t.team_id), { team: t.team, country: t.country }]));
 
   // Grupos: grupo -> [team_id...]
   const gruposMap = new Map();
@@ -44,21 +43,18 @@ export function prepararTorneo(ratings, fixtures, teams, groups) {
     throw new Error('groups.csv sin grupos (standings vacio en Fase 1). No se puede simular.');
   }
 
-  // Partidos de fase de grupos con lambdas PRECOMPUTADAS (deterministas por Elo+HFA).
   const porGrupo = new Map();
   const matchMeta = []; // para match_probs.csv
   for (const f of fixtures) {
     if (!f.group || !/^[A-L]$/.test(f.group)) continue;
     const hId = String(f.home_id), aId = String(f.away_id);
-    const eloL = eloPorId.get(hId), eloV = eloPorId.get(aId);
-    if (!Number.isFinite(eloL) || !Number.isFinite(eloV)) {
-      throw new Error(`Sin Elo para fixture ${f.fixture_id} (${f.home}/${f.away}). Revisa ratings.csv.`);
+    if (!fit.ataque.has(hId) || !fit.ataque.has(aId)) {
+      throw new Error(`Sin fuerza para fixture ${f.fixture_id} (${f.home}/${f.away}). Revisa ratings.csv (Fase 2).`);
     }
-    const hfa = hfaDePartido(nombrePorId.get(hId), countryPorId.get(hId), nombrePorId.get(aId), countryPorId.get(aId), f.venue_city, f.venue_name);
-    const { lambdaLocal, lambdaVisita } = lambdasDesdeElo(eloL, eloV, hfa);
+    const { lambdaLocal, lambdaVisita, signo } = lambdasFixture(fit, f, infoEquipos);
     if (!porGrupo.has(f.group)) porGrupo.set(f.group, []);
     porGrupo.get(f.group).push({ homeId: hId, awayId: aId, lambdaLocal, lambdaVisita });
-    matchMeta.push({ f, hfa, eloL, eloV, lambdaLocal, lambdaVisita });
+    matchMeta.push({ f, signo, lambdaLocal, lambdaVisita });
   }
   return { gruposMap, porGrupo, fifaPorId, nombrePorId, matchMeta };
 }
@@ -89,32 +85,31 @@ function simularIteracion(gruposMap, porGrupo, fifaPorId, rng, ctx) {
 function main() {
   const t0 = Date.now();
   info(`=== FASE 4: Monte Carlo (N=${SIM.iteraciones}, semilla=${SIM.semilla}) ===`);
+  const fit = cargarFit();
   const ratings = cargarCSV('ratings.csv');
   const fixtures = cargarCSV('fixtures.csv');
   const teams = cargarCSV('teams.csv');
   const groups = cargarCSV('groups.csv');
 
-  const { gruposMap, porGrupo, fifaPorId, nombrePorId, matchMeta } = prepararTorneo(ratings, fixtures, teams, groups);
+  const { gruposMap, porGrupo, fifaPorId, nombrePorId, matchMeta } = prepararTorneo(ratings, fixtures, teams, groups, fit);
   const nPartidos = matchMeta.length;
   if (nPartidos !== TORNEO.partidosFaseGrupos) {
     warn(`Partidos de fase de grupos: ${nPartidos} (esperados ${TORNEO.partidosFaseGrupos}). Se simula lo disponible.`);
   }
 
   // --- match_probs.csv (analitico exacto) ---
-  const filasMatch = matchMeta.map(({ f, hfa, eloL, eloV, lambdaLocal, lambdaVisita }) => {
-    const M = matrizMarcadores(lambdaLocal, lambdaVisita, SIM.maxGoles);
-    const r = resumenPartido(M);
+  const filasMatch = matchMeta.map(({ f, signo, lambdaLocal, lambdaVisita }) => {
+    const r = resumenPartido(matrizMarcadores(lambdaLocal, lambdaVisita, SIM.maxGoles));
     return {
       fixture_id: f.fixture_id, group: f.group, home: f.home, away: f.away,
-      hfa_elo: hfa, elo_home: eloL, elo_away: eloV,
-      xg_home: lambdaLocal.toFixed(3), xg_away: lambdaVisita.toFixed(3),
+      localia: signo, xg_home: lambdaLocal.toFixed(3), xg_away: lambdaVisita.toFixed(3),
       p_local: r.pLocal.toFixed(4), p_empate: r.pEmpate.toFixed(4), p_visita: r.pVisita.toFixed(4),
       marcador_prob: r.marcadorProb,
     };
   });
   escribir('match_probs.csv', filasMatch, [
-    'fixture_id', 'group', 'home', 'away', 'hfa_elo', 'elo_home', 'elo_away',
-    'xg_home', 'xg_away', 'p_local', 'p_empate', 'p_visita', 'marcador_prob',
+    'fixture_id', 'group', 'home', 'away', 'localia', 'xg_home', 'xg_away',
+    'p_local', 'p_empate', 'p_visita', 'marcador_prob',
   ]);
 
   // --- Monte Carlo ---
@@ -153,7 +148,7 @@ function main() {
   ]);
 
   // --- reporte.md ---
-  escribirReporte(filasGrupo, { N, nPartidos, ctx, eloCorte: ratings[0]?.fecha_corte });
+  escribirReporte(filasGrupo, { N, nPartidos, ctx, fit, fechaCorte: ratings[0]?.fecha_corte });
 
   const segs = ((Date.now() - t0) / 1000).toFixed(1);
   if (ctx.empatesAzar) warn(`Empates resueltos por azar (ultimo recurso): ${ctx.empatesAzar} en ${N} iteraciones (${(ctx.empatesAzar / N).toFixed(6)} por corrida).`);
@@ -168,7 +163,7 @@ function escribir(nombre, filas, columnas) {
 }
 
 function escribirReporte(filasGrupo, meta) {
-  const { N, nPartidos, ctx, eloCorte } = meta;
+  const { N, nPartidos, ctx, fit, fechaCorte } = meta;
   const L = [];
   L.push('# Reporte — Pronóstico fase de grupos, Mundial FIFA 2026');
   L.push('');
@@ -178,9 +173,10 @@ function escribirReporte(filasGrupo, meta) {
   L.push('');
   L.push(`- **Iteraciones Monte Carlo:** ${N.toLocaleString('en-US')} (RNG sembrado: ${SIM.semilla}, reproducible).`);
   L.push(`- **Partidos de fase de grupos simulados:** ${nPartidos} / ${TORNEO.partidosFaseGrupos}.`);
-  L.push(`- **Modelo de gol:** Poisson independiente por equipo. xG = max(${MODELO.lambdaMin}, λ₀ ± β·(dr/400)/2), con λ₀=${MODELO.lambda0}, β=${MODELO.beta}.`);
-  L.push(`- **Diferencial:** dr = (Elo_local + HFA) − Elo_visita.`);
-  L.push(`- **Ventaja de localía (HFA):** ${MODELO.hfaEloAnfitrion} pts Elo al equipo que juega en su país anfitrión (mapa sede→país); 0 en sede neutral.`);
+  L.push('- **Fuerza:** modelo Poisson Dixon-Coles ajustado a los resultados de las eliminatorias (Fase 2).');
+  L.push('- **Modelo de gol:** Poisson independiente por equipo: log λ_local = base + localía·h + ataque_local + defensa_visita; log λ_visita = base + ataque_visita + defensa_local.');
+  L.push(`- **Parámetros ajustados:** base=${fit.base.toFixed(3)}, h (ventaja de local)=${fit.h.toFixed(3)}, ρ (Dixon-Coles)=${fit.rho.toFixed(3)}.`);
+  L.push('- **Ventaja de localía:** se aplica h solo al anfitrión (USA/México/Canadá) jugando en su país (mapa sede→país); 0 en sede neutral.');
   L.push('');
   L.push('## Desempates aplicados (orden oficial FIFA 2026, verificado)');
   L.push('');
@@ -191,9 +187,9 @@ function escribirReporte(filasGrupo, meta) {
   L.push('');
   L.push('## Fuentes y fechas de corte');
   L.push('');
-  L.push('- **Fixtures / grupos / equipos:** API-Football v3 (`league=1, season=2026`). Crudo versionado en `data/raw/`.');
-  L.push(`- **Elo (fuerza):** eloratings.net. Fecha de corte: ${eloCorte || 'ver ratings.csv'}.`);
-  L.push(`- **Ranking FIFA (control / desempate):** ${RATINGS.fifa.fuente}. Corte: ${RATINGS.fifa.fechaCorte || 'ver fifa_ranking.csv'}.`);
+  L.push('- **Resultados de eliminatorias / fixtures / grupos / equipos:** API-Football v3. Crudo versionado en `data/raw/`.');
+  L.push(`- **Fuerza (ataque/defensa):** ajuste Dixon-Coles sobre resultados de eliminatorias. Fecha de corte: ${fechaCorte || 'ver ratings.csv'}.`);
+  L.push(`- **Ranking FIFA (ancla de comparabilidad + desempate):** ${RATINGS.fifa.fuente}. Corte: ${RATINGS.fifa.fechaCorte || 'ver fifa_ranking.csv'}.`);
   L.push('');
   L.push('## Probabilidades de avance por grupo');
   L.push('');
