@@ -252,7 +252,16 @@ de goles para los desempates (Fase 4).
 
 ### Salida `match_probs.csv`
 `fixture_id, group, home, away, localia, xg_home, xg_away, p_local, p_empate,
-p_visita, marcador_prob`.
+p_visita, p_mas25, marcador_modal, marcador_sim`.
+
+- **`xg_home/xg_away`**: goles esperados por equipo (la proyección informativa).
+- **`p_mas25`**: probabilidad de 3+ goles en el partido.
+- **`marcador_modal`**: resultado exacto más probable — en fútbol casi siempre bajo
+  (1-0, 1-1), por eso **no** se usa como "la predicción".
+- **`marcador_sim`**: una **realización** del modelo (muestreo Poisson sembrado). Da
+  marcadores con variedad real (2-1, 3-0, goleadas ocasionales). No es "el" resultado
+  —el fútbol es aleatorio—; es un marcador plausible. Con otra semilla sale otro
+  torneo igualmente válido.
 
 ---
 

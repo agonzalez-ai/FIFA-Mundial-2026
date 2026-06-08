@@ -15,7 +15,7 @@ import path from 'node:path';
 import { SIM, TORNEO, PATHS, RATINGS } from './config.js';
 import { aCSV, objetosDesdeDelimitado } from './lib/csv.js';
 import { crearRng, muestrearPoisson } from './lib/rng.js';
-import { cargarFit, lambdasFixture, matrizMarcadores, resumenPartido } from './model.js';
+import { cargarFit, lambdasFixture, matrizMarcadores, resumenPartido, pTotalGE, muestrearMarcador } from './model.js';
 import { ordenarGrupo, rankearTerceros } from './lib/standings.js';
 import { info, warn } from './lib/logger.js';
 
@@ -97,19 +97,25 @@ function main() {
     warn(`Partidos de fase de grupos: ${nPartidos} (esperados ${TORNEO.partidosFaseGrupos}). Se simula lo disponible.`);
   }
 
-  // --- match_probs.csv (analitico exacto) ---
+  // --- match_probs.csv (probabilidades exactas + xG + marcador simulado) ---
+  // RNG dedicado (independiente del Monte Carlo) para el marcador simulado: una
+  // realizacion plausible por partido, con variedad realista (incluye goleadas).
+  const rngRep = crearRng(SIM.semilla ^ 0x5f3759df);
   const filasMatch = matchMeta.map(({ f, signo, lambdaLocal, lambdaVisita }) => {
-    const r = resumenPartido(matrizMarcadores(lambdaLocal, lambdaVisita, SIM.maxGoles));
+    const M = matrizMarcadores(lambdaLocal, lambdaVisita, SIM.maxGoles);
+    const r = resumenPartido(M);
     return {
       fixture_id: f.fixture_id, group: f.group, home: f.home, away: f.away,
       localia: signo, xg_home: lambdaLocal.toFixed(3), xg_away: lambdaVisita.toFixed(3),
       p_local: r.pLocal.toFixed(4), p_empate: r.pEmpate.toFixed(4), p_visita: r.pVisita.toFixed(4),
-      marcador_prob: r.marcadorProb,
+      p_mas25: pTotalGE(M, 3).toFixed(4),
+      marcador_modal: r.marcadorProb,
+      marcador_sim: muestrearMarcador(lambdaLocal, lambdaVisita, rngRep),
     };
   });
   escribir('match_probs.csv', filasMatch, [
     'fixture_id', 'group', 'home', 'away', 'localia', 'xg_home', 'xg_away',
-    'p_local', 'p_empate', 'p_visita', 'marcador_prob',
+    'p_local', 'p_empate', 'p_visita', 'p_mas25', 'marcador_modal', 'marcador_sim',
   ]);
 
   // --- Monte Carlo ---
@@ -210,24 +216,23 @@ function escribirReporte(filasGrupo, meta) {
 
   // Pronostico por partido: goles esperados (xG) + probabilidades 1/X/2.
   if (filasMatch && filasMatch.length) {
-    L.push('## Pronóstico por partido (goles esperados y resultado)');
+    L.push('## Pronóstico por partido (goles esperados y marcador simulado)');
     L.push('');
     L.push('`xG` = goles esperados por equipo (lo informativo). 1/X/2 = P(gana local / empate / gana visita). '
-      + 'El "marcador modal" es el resultado exacto más probable, que en fútbol casi siempre es bajo (1-0, 1-1); por eso prima el xG.');
+      + '`+2.5` = probabilidad de 3 o más goles. **`Marcador sim`** = una realización del modelo '
+      + '(marcador plausible con variedad real; NO es "el" resultado, el fútbol es aleatorio). '
+      + 'El marcador exacto *más probable* casi siempre es bajo (1-0, 1-1), por eso no se usa como predicción.');
     L.push('');
     const pg = {};
     for (const m of filasMatch) (pg[m.group] ??= []).push(m);
     for (const g of Object.keys(pg).sort()) {
       L.push(`### Grupo ${g}`);
       L.push('');
-      L.push('| Partido | xG | 1 | X | 2 | Favorito | Marcador modal |');
-      L.push('|---|:--:|--:|--:|--:|---|:--:|');
+      L.push('| Partido | xG | 1 | X | 2 | +2.5 | **Marcador sim** |');
+      L.push('|---|:--:|--:|--:|--:|--:|:--:|');
       for (const m of pg[g]) {
-        const pl = Number(m.p_local), pe = Number(m.p_empate), pv = Number(m.p_visita);
-        const fav = pl >= pe && pl >= pv ? m.home : (pv >= pe ? m.away : 'Empate');
-        const favP = Math.max(pl, pe, pv);
-        const pct = (v) => `${(v * 100).toFixed(0)}%`;
-        L.push(`| ${m.home} vs ${m.away} | ${m.xg_home}–${m.xg_away} | ${pct(pl)} | ${pct(pe)} | ${pct(pv)} | ${fav} (${pct(favP)}) | ${m.marcador_prob} |`);
+        const pct = (v) => `${(Number(v) * 100).toFixed(0)}%`;
+        L.push(`| ${m.home} vs ${m.away} | ${m.xg_home}–${m.xg_away} | ${pct(m.p_local)} | ${pct(m.p_empate)} | ${pct(m.p_visita)} | ${pct(m.p_mas25)} | **${m.marcador_sim}** |`);
       }
       L.push('');
     }

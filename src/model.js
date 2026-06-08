@@ -17,6 +17,7 @@ import { TORNEO, PATHS, SIM } from './config.js';
 import { aCSV, objetosDesdeDelimitado } from './lib/csv.js';
 import { signoLocalia } from './lib/venues.js';
 import { lambdasDC } from './lib/dixoncoles.js';
+import { crearRng, muestrearPoisson } from './lib/rng.js';
 import { info, warn } from './lib/logger.js';
 
 // --- Nucleo matematico (puro) ----------------------------------------------
@@ -53,6 +54,20 @@ export function resumenPartido(M) {
     }
   }
   return { pLocal, pEmpate, pVisita, marcadorProb: `${mejor.i}-${mejor.j}`, pMarcadorProb: mejor.p };
+}
+
+// P(total de goles >= umbral) a partir de la matriz (p.ej. umbral=3 => "+2.5 goles").
+export function pTotalGE(M, umbral) {
+  let p = 0;
+  for (let i = 0; i < M.length; i++) for (let j = 0; j < M[i].length; j++) if (i + j >= umbral) p += M[i][j];
+  return p;
+}
+
+// Marcador SIMULADO: una realizacion del modelo (Poisson por equipo) con el RNG dado.
+// Produce variedad realista (2-1, 3-0, goleadas ocasionales). NO es "el" marcador:
+// el futbol es aleatorio; es una muestra plausible de la distribucion.
+export function muestrearMarcador(lambdaLocal, lambdaVisita, rng) {
+  return `${muestrearPoisson(lambdaLocal, rng)}-${muestrearPoisson(lambdaVisita, rng)}`;
 }
 
 // --- Carga de la fuerza ajustada (Fase 2) ----------------------------------
@@ -93,16 +108,20 @@ function cargarCSV(nombre) {
   return objetosDesdeDelimitado(fs.readFileSync(ruta, 'utf8'), ',').rows;
 }
 
-// Construye el CSV de probabilidades por partido (puro: recibe fixtures y fit).
-export function filasMatchProbs(fixturesGrupos, fit, infoEquipos, maxGoles = SIM.maxGoles) {
+// Construye el CSV de probabilidades por partido. Si se pasa `rng`, agrega un
+// marcador SIMULADO (una realizacion, con variedad/goleadas) por partido.
+export function filasMatchProbs(fixturesGrupos, fit, infoEquipos, maxGoles = SIM.maxGoles, rng = null) {
   return fixturesGrupos.map((f) => {
     const { lambdaLocal, lambdaVisita, signo } = lambdasFixture(fit, f, infoEquipos);
-    const r = resumenPartido(matrizMarcadores(lambdaLocal, lambdaVisita, maxGoles));
+    const M = matrizMarcadores(lambdaLocal, lambdaVisita, maxGoles);
+    const r = resumenPartido(M);
     return {
       fixture_id: f.fixture_id, group: f.group, home: f.home, away: f.away,
       localia: signo, xg_home: lambdaLocal.toFixed(3), xg_away: lambdaVisita.toFixed(3),
       p_local: r.pLocal.toFixed(4), p_empate: r.pEmpate.toFixed(4), p_visita: r.pVisita.toFixed(4),
-      marcador_prob: r.marcadorProb,
+      p_mas25: pTotalGE(M, 3).toFixed(4),
+      marcador_modal: r.marcadorProb,
+      marcador_sim: rng ? muestrearMarcador(lambdaLocal, lambdaVisita, rng) : '',
     };
   });
 }
@@ -125,12 +144,12 @@ function main() {
     }
   }
 
-  const filas = filasMatchProbs(grupos, fit, infoEquipos);
+  const filas = filasMatchProbs(grupos, fit, infoEquipos, SIM.maxGoles, crearRng(SIM.semilla));
   fs.mkdirSync(PATHS.out, { recursive: true });
   const ruta = path.join(PATHS.out, 'match_probs.csv');
   fs.writeFileSync(ruta, aCSV(filas, [
     'fixture_id', 'group', 'home', 'away', 'localia', 'xg_home', 'xg_away',
-    'p_local', 'p_empate', 'p_visita', 'marcador_prob',
+    'p_local', 'p_empate', 'p_visita', 'p_mas25', 'marcador_modal', 'marcador_sim',
   ]));
   info(`Escrito ${ruta} (${filas.length} partidos).`);
   info('=== FASE 3 completa ===');
