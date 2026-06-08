@@ -1,0 +1,12 @@
+# Dependencias
+node_modules/
+
+# Variables sensibles (la API key NUNCA se versiona)
+.env
+
+# Logs locales del sistema operativo
+*.log.local
+.DS_Store
+
+# IMPORTANTE: data/raw SI se versiona a proposito (cache crudo reproducible).
+# data/out SI se versiona (resultados auditables del modelo).
