@@ -69,11 +69,23 @@ Variables de entorno (ver `.env.example`):
 ## Uso
 
 ```bash
-npm run extract     # FASE 1: llama la API y escribe data/raw + data/out CSVs
-npm run ratings     # FASE 2: ratings de fuerza -> ratings.csv
+npm run extract     # FASE 1 (API-Football): resultados de eliminatorias + torneo final
+npm run ingest      # FASE 1 alterna (GitHub): construye los CSV desde un dataset publico
+npm run ratings     # FASE 2: fuerza Dixon-Coles -> ratings.csv + dc_params.json
 npm run model       # FASE 3: match_probs.csv (analitico exacto)
 npm run simulate    # FASE 3+4: match_probs + group_probs + reporte.md (Monte Carlo)
 ```
+
+### Dos rutas de ingesta de datos
+- **`extract`** (preferida si tienes API key y red a API-Football): baja resultados de
+  eliminatorias por confederación + estructura del torneo final.
+- **`ingest`** (la usada para el pronóstico de este repo): construye los mismos CSV
+  desde el dataset público **martj42/international_results** (GitHub), que ya incluye
+  los 72 partidos del Mundial 2026 con sedes y miles de partidos internacionales
+  jugados. Cruda versionada en `data/raw/intl_results_<fecha>.csv`. Útil cuando el
+  entorno solo permite GitHub. Fuerza estimada de **partidos reales** (eliminatorias +
+  amistosos + Nations League, ventana 2023–2026); el grafo queda **conectado**, así que
+  la comparabilidad entre confederaciones sale de partidos reales (sin ancla FIFA).
 
 **La corrida de extracción está separada de la del modelo.** `extract` es lo
 único que consume cuota de API; `simulate` lee solo de disco (`data/raw`), así

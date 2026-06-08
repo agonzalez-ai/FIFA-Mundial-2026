@@ -1,0 +1,73 @@
+fixture_id,fecha,round,group,home_id,home,away_id,away,venue_name,venue_city,status
+100000,2026-06-11,Group Stage,A,Mexico,Mexico,South Africa,South Africa,,Mexico City,NS
+100001,2026-06-11,Group Stage,A,South Korea,South Korea,Czech Republic,Czech Republic,,Zapopan,NS
+100002,2026-06-12,Group Stage,B,Canada,Canada,Bosnia and Herzegovina,Bosnia and Herzegovina,,Toronto,NS
+100003,2026-06-12,Group Stage,D,United States,United States,Paraguay,Paraguay,,Inglewood,NS
+100004,2026-06-13,Group Stage,B,Qatar,Qatar,Switzerland,Switzerland,,Santa Clara,NS
+100005,2026-06-13,Group Stage,F,Brazil,Brazil,Morocco,Morocco,,East Rutherford,NS
+100006,2026-06-13,Group Stage,F,Haiti,Haiti,Scotland,Scotland,,Foxborough,NS
+100007,2026-06-13,Group Stage,D,Australia,Australia,Turkey,Turkey,,Vancouver,NS
+100008,2026-06-14,Group Stage,J,Germany,Germany,Curaçao,Curaçao,,Houston,NS
+100009,2026-06-14,Group Stage,J,Ivory Coast,Ivory Coast,Ecuador,Ecuador,,Philadelphia,NS
+100010,2026-06-14,Group Stage,L,Netherlands,Netherlands,Japan,Japan,,Arlington,NS
+100011,2026-06-14,Group Stage,L,Sweden,Sweden,Tunisia,Tunisia,,Guadalupe,NS
+100012,2026-06-15,Group Stage,E,Belgium,Belgium,Egypt,Egypt,,Seattle,NS
+100013,2026-06-15,Group Stage,E,Iran,Iran,New Zealand,New Zealand,,Inglewood,NS
+100014,2026-06-15,Group Stage,G,Spain,Spain,Cape Verde,Cape Verde,,Atlanta,NS
+100015,2026-06-15,Group Stage,G,Saudi Arabia,Saudi Arabia,Uruguay,Uruguay,,Miami Gardens,NS
+100016,2026-06-16,Group Stage,K,France,France,Senegal,Senegal,,East Rutherford,NS
+100017,2026-06-16,Group Stage,K,Iraq,Iraq,Norway,Norway,,Foxborough,NS
+100018,2026-06-16,Group Stage,C,Argentina,Argentina,Algeria,Algeria,,Kansas City,NS
+100019,2026-06-16,Group Stage,C,Austria,Austria,Jordan,Jordan,,Santa Clara,NS
+100020,2026-06-17,Group Stage,H,Portugal,Portugal,DR Congo,DR Congo,,Houston,NS
+100021,2026-06-17,Group Stage,H,Uzbekistan,Uzbekistan,Colombia,Colombia,,Mexico City,NS
+100022,2026-06-17,Group Stage,I,England,England,Croatia,Croatia,,Arlington,NS
+100023,2026-06-17,Group Stage,I,Ghana,Ghana,Panama,Panama,,Toronto,NS
+100024,2026-06-18,Group Stage,A,Czech Republic,Czech Republic,South Africa,South Africa,,Atlanta,NS
+100025,2026-06-18,Group Stage,A,Mexico,Mexico,South Korea,South Korea,,Zapopan,NS
+100026,2026-06-18,Group Stage,B,Switzerland,Switzerland,Bosnia and Herzegovina,Bosnia and Herzegovina,,Inglewood,NS
+100027,2026-06-18,Group Stage,B,Canada,Canada,Qatar,Qatar,,Vancouver,NS
+100028,2026-06-19,Group Stage,F,Scotland,Scotland,Morocco,Morocco,,Foxborough,NS
+100029,2026-06-19,Group Stage,F,Brazil,Brazil,Haiti,Haiti,,Philadelphia,NS
+100030,2026-06-19,Group Stage,D,United States,United States,Australia,Australia,,Seattle,NS
+100031,2026-06-19,Group Stage,D,Turkey,Turkey,Paraguay,Paraguay,,Santa Clara,NS
+100032,2026-06-20,Group Stage,J,Germany,Germany,Ivory Coast,Ivory Coast,,Toronto,NS
+100033,2026-06-20,Group Stage,J,Ecuador,Ecuador,Curaçao,Curaçao,,Kansas City,NS
+100034,2026-06-20,Group Stage,L,Netherlands,Netherlands,Sweden,Sweden,,Houston,NS
+100035,2026-06-20,Group Stage,L,Tunisia,Tunisia,Japan,Japan,,Guadalupe,NS
+100036,2026-06-21,Group Stage,E,Belgium,Belgium,Iran,Iran,,Inglewood,NS
+100037,2026-06-21,Group Stage,E,New Zealand,New Zealand,Egypt,Egypt,,Vancouver,NS
+100038,2026-06-21,Group Stage,G,Spain,Spain,Saudi Arabia,Saudi Arabia,,Atlanta,NS
+100039,2026-06-21,Group Stage,G,Uruguay,Uruguay,Cape Verde,Cape Verde,,Miami Gardens,NS
+100040,2026-06-22,Group Stage,K,France,France,Iraq,Iraq,,Philadelphia,NS
+100041,2026-06-22,Group Stage,K,Norway,Norway,Senegal,Senegal,,East Rutherford,NS
+100042,2026-06-22,Group Stage,C,Argentina,Argentina,Austria,Austria,,Arlington,NS
+100043,2026-06-22,Group Stage,C,Jordan,Jordan,Algeria,Algeria,,Santa Clara,NS
+100044,2026-06-23,Group Stage,H,Portugal,Portugal,Uzbekistan,Uzbekistan,,Houston,NS
+100045,2026-06-23,Group Stage,H,Colombia,Colombia,DR Congo,DR Congo,,Zapopan,NS
+100046,2026-06-23,Group Stage,I,England,England,Ghana,Ghana,,Foxborough,NS
+100047,2026-06-23,Group Stage,I,Panama,Panama,Croatia,Croatia,,Toronto,NS
+100048,2026-06-24,Group Stage,A,Mexico,Mexico,Czech Republic,Czech Republic,,Mexico City,NS
+100049,2026-06-24,Group Stage,A,South Africa,South Africa,South Korea,South Korea,,Guadalupe,NS
+100050,2026-06-24,Group Stage,B,Canada,Canada,Switzerland,Switzerland,,Vancouver,NS
+100051,2026-06-24,Group Stage,B,Bosnia and Herzegovina,Bosnia and Herzegovina,Qatar,Qatar,,Seattle,NS
+100052,2026-06-24,Group Stage,F,Scotland,Scotland,Brazil,Brazil,,Miami Gardens,NS
+100053,2026-06-24,Group Stage,F,Morocco,Morocco,Haiti,Haiti,,Atlanta,NS
+100054,2026-06-25,Group Stage,D,United States,United States,Turkey,Turkey,,Inglewood,NS
+100055,2026-06-25,Group Stage,D,Paraguay,Paraguay,Australia,Australia,,Santa Clara,NS
+100056,2026-06-25,Group Stage,J,Curaçao,Curaçao,Ivory Coast,Ivory Coast,,Philadelphia,NS
+100057,2026-06-25,Group Stage,J,Ecuador,Ecuador,Germany,Germany,,East Rutherford,NS
+100058,2026-06-25,Group Stage,L,Japan,Japan,Sweden,Sweden,,Arlington,NS
+100059,2026-06-25,Group Stage,L,Tunisia,Tunisia,Netherlands,Netherlands,,Kansas City,NS
+100060,2026-06-26,Group Stage,E,Egypt,Egypt,Iran,Iran,,Seattle,NS
+100061,2026-06-26,Group Stage,E,New Zealand,New Zealand,Belgium,Belgium,,Vancouver,NS
+100062,2026-06-26,Group Stage,G,Cape Verde,Cape Verde,Saudi Arabia,Saudi Arabia,,Houston,NS
+100063,2026-06-26,Group Stage,G,Uruguay,Uruguay,Spain,Spain,,Zapopan,NS
+100064,2026-06-26,Group Stage,K,Norway,Norway,France,France,,Foxborough,NS
+100065,2026-06-26,Group Stage,K,Senegal,Senegal,Iraq,Iraq,,Toronto,NS
+100066,2026-06-27,Group Stage,C,Algeria,Algeria,Austria,Austria,,Kansas City,NS
+100067,2026-06-27,Group Stage,C,Jordan,Jordan,Argentina,Argentina,,Arlington,NS
+100068,2026-06-27,Group Stage,H,Colombia,Colombia,Portugal,Portugal,,Miami Gardens,NS
+100069,2026-06-27,Group Stage,H,DR Congo,DR Congo,Uzbekistan,Uzbekistan,,Atlanta,NS
+100070,2026-06-27,Group Stage,I,Panama,Panama,England,England,,East Rutherford,NS
+100071,2026-06-27,Group Stage,I,Croatia,Croatia,Ghana,Ghana,,Philadelphia,NS

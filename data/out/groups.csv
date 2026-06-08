@@ -1,0 +1,49 @@
+group,team_id,team,rank_inicial
+A,Mexico,Mexico,1
+A,South Africa,South Africa,2
+A,South Korea,South Korea,3
+A,Czech Republic,Czech Republic,4
+B,Canada,Canada,1
+B,Bosnia and Herzegovina,Bosnia and Herzegovina,2
+B,Qatar,Qatar,3
+B,Switzerland,Switzerland,4
+C,Argentina,Argentina,1
+C,Algeria,Algeria,2
+C,Austria,Austria,3
+C,Jordan,Jordan,4
+D,United States,United States,1
+D,Paraguay,Paraguay,2
+D,Australia,Australia,3
+D,Turkey,Turkey,4
+E,Belgium,Belgium,1
+E,Egypt,Egypt,2
+E,Iran,Iran,3
+E,New Zealand,New Zealand,4
+F,Brazil,Brazil,1
+F,Morocco,Morocco,2
+F,Haiti,Haiti,3
+F,Scotland,Scotland,4
+G,Spain,Spain,1
+G,Cape Verde,Cape Verde,2
+G,Saudi Arabia,Saudi Arabia,3
+G,Uruguay,Uruguay,4
+H,Portugal,Portugal,1
+H,DR Congo,DR Congo,2
+H,Uzbekistan,Uzbekistan,3
+H,Colombia,Colombia,4
+I,England,England,1
+I,Croatia,Croatia,2
+I,Ghana,Ghana,3
+I,Panama,Panama,4
+J,Germany,Germany,1
+J,Curaçao,Curaçao,2
+J,Ivory Coast,Ivory Coast,3
+J,Ecuador,Ecuador,4
+K,France,France,1
+K,Senegal,Senegal,2
+K,Iraq,Iraq,3
+K,Norway,Norway,4
+L,Netherlands,Netherlands,1
+L,Japan,Japan,2
+L,Sweden,Sweden,3
+L,Tunisia,Tunisia,4

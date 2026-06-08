@@ -1,0 +1,49 @@
+team_id,team,confederacion,ataque,defensa,net,n_partidos,fifa_points,fuente,fecha_corte
+Morocco,Morocco,Friendly,0.3692,-0.5791,0.9483,51,,dixon_coles,2026-06-07
+Japan,Japan,FIFA World Cup qualification,0.5309,-0.3972,0.9281,38,,dixon_coles,2026-06-07
+Argentina,Argentina,FIFA World Cup qualification,0.3965,-0.4928,0.8894,38,,dixon_coles,2026-06-07
+Spain,Spain,UEFA Nations League,0.5443,-0.3425,0.8867,40,,dixon_coles,2026-06-07
+Senegal,Senegal,Friendly,0.4120,-0.4140,0.8260,44,,dixon_coles,2026-06-07
+Algeria,Algeria,Friendly,0.4064,-0.3588,0.7652,48,,dixon_coles,2026-06-07
+England,England,Friendly,0.3137,-0.4245,0.7382,40,,dixon_coles,2026-06-07
+Portugal,Portugal,UEFA Euro qualification,0.4552,-0.2826,0.7378,39,,dixon_coles,2026-06-07
+France,France,UEFA Nations League,0.3940,-0.3382,0.7322,39,,dixon_coles,2026-06-07
+Belgium,Belgium,Friendly,0.4389,-0.2882,0.7271,38,,dixon_coles,2026-06-07
+Norway,Norway,Friendly,0.4806,-0.2413,0.7218,34,,dixon_coles,2026-06-07
+Iran,Iran,FIFA World Cup qualification,0.3665,-0.3251,0.6916,39,,dixon_coles,2026-06-07
+Colombia,Colombia,Friendly,0.3676,-0.3198,0.6874,42,,dixon_coles,2026-06-07
+Netherlands,Netherlands,UEFA Nations League,0.4313,-0.2261,0.6574,39,,dixon_coles,2026-06-07
+Austria,Austria,Friendly,0.3191,-0.3133,0.6324,37,,dixon_coles,2026-06-07
+Germany,Germany,Friendly,0.4318,-0.1959,0.6277,40,,dixon_coles,2026-06-07
+Ivory Coast,Ivory Coast,African Cup of Nations,0.2244,-0.3918,0.6161,44,,dixon_coles,2026-06-07
+Australia,Australia,FIFA World Cup qualification,0.2537,-0.3486,0.6023,38,,dixon_coles,2026-06-07
+Switzerland,Switzerland,Friendly,0.3431,-0.2397,0.5828,39,,dixon_coles,2026-06-07
+Brazil,Brazil,FIFA World Cup qualification,0.3603,-0.2201,0.5803,37,,dixon_coles,2026-06-07
+South Korea,South Korea,Friendly,0.2966,-0.2576,0.5542,41,,dixon_coles,2026-06-07
+Croatia,Croatia,UEFA Nations League,0.2732,-0.2474,0.5206,37,,dixon_coles,2026-06-07
+Egypt,Egypt,African Cup of Nations,0.1312,-0.3725,0.5037,47,,dixon_coles,2026-06-07
+DR Congo,DR Congo,FIFA World Cup qualification,0.0215,-0.4745,0.4960,44,,dixon_coles,2026-06-07
+Mexico,Mexico,Friendly,0.1560,-0.3384,0.4943,57,,dixon_coles,2026-06-07
+Ecuador,Ecuador,FIFA World Cup qualification,-0.0014,-0.4756,0.4742,39,,dixon_coles,2026-06-07
+Uruguay,Uruguay,FIFA World Cup qualification,0.0724,-0.3771,0.4495,39,,dixon_coles,2026-06-07
+Turkey,Turkey,Friendly,0.2860,-0.1557,0.4417,39,,dixon_coles,2026-06-07
+Canada,Canada,Friendly,0.1046,-0.3189,0.4235,43,,dixon_coles,2026-06-07
+Haiti,Haiti,CONCACAF Nations League,0.2976,-0.1254,0.4229,34,,dixon_coles,2026-06-07
+Uzbekistan,Uzbekistan,FIFA World Cup qualification,0.0922,-0.3263,0.4185,41,,dixon_coles,2026-06-07
+New Zealand,New Zealand,Friendly,0.2514,-0.1661,0.4175,33,,dixon_coles,2026-06-07
+Tunisia,Tunisia,Friendly,0.0880,-0.3168,0.4048,46,,dixon_coles,2026-06-07
+Czech Republic,Czech Republic,Friendly,0.2388,-0.1094,0.3482,37,,dixon_coles,2026-06-07
+Iraq,Iraq,FIFA World Cup qualification,0.0451,-0.3006,0.3457,47,,dixon_coles,2026-06-07
+Jordan,Jordan,Friendly,0.2369,-0.0773,0.3142,51,,dixon_coles,2026-06-07
+United States,United States,Friendly,0.2631,-0.0509,0.3140,54,,dixon_coles,2026-06-07
+Panama,Panama,Friendly,0.2092,-0.1008,0.3099,55,,dixon_coles,2026-06-07
+Paraguay,Paraguay,FIFA World Cup qualification,0.0171,-0.2845,0.3016,33,,dixon_coles,2026-06-07
+South Africa,South Africa,Friendly,0.0633,-0.2380,0.3013,49,,dixon_coles,2026-06-07
+Scotland,Scotland,Friendly,0.1810,-0.1125,0.2934,37,,dixon_coles,2026-06-07
+Curaçao,Curaçao,CONCACAF Nations League,0.1652,-0.0705,0.2356,34,,dixon_coles,2026-06-07
+Sweden,Sweden,Friendly,0.2582,0.0357,0.2225,37,,dixon_coles,2026-06-07
+Saudi Arabia,Saudi Arabia,Friendly,0.0050,-0.2141,0.2191,56,,dixon_coles,2026-06-07
+Ghana,Ghana,African Cup of Nations qualification,0.0664,-0.1208,0.1871,36,,dixon_coles,2026-06-07
+Cape Verde,Cape Verde,African Cup of Nations qualification,0.0111,-0.1462,0.1573,40,,dixon_coles,2026-06-07
+Qatar,Qatar,FIFA World Cup qualification,0.0502,0.0590,-0.0088,50,,dixon_coles,2026-06-07
+Bosnia and Herzegovina,Bosnia and Herzegovina,UEFA Euro qualification,-0.0300,0.0086,-0.0385,33,,dixon_coles,2026-06-07
