@@ -15,7 +15,7 @@ Carlo para producir probabilidades de avance por selección.
 | Fase | Descripción | Estado |
 |------|-------------|--------|
 | 1 | Extracción API-Football → CSVs normalizados | ✅ Implementada |
-| 2 | Ratings de fuerza (Elo + ranking FIFA) | ⏳ Pendiente |
+| 2 | Ratings de fuerza (Elo + ranking FIFA) | ✅ Implementada |
 | 3 | Modelo de partido (Elo → xG → Poisson) | ⏳ Pendiente |
 | 4 | Simulación Monte Carlo + desempates FIFA | ⏳ Pendiente |
 
@@ -120,6 +120,51 @@ Tres endpoints de API-Football v3 (`league=1`, `season=2026`):
 **Manejo de vacíos (advertencia del brief):** si `standings` aún no expone la
 estructura de grupos, o si no llegan exactamente 48 equipos / 104 partidos, se
 escribe lo recibido **sin rellenar** y se deja un `WARN` en el log.
+
+---
+
+## Fase 2 — Ratings de fuerza (implementada)
+
+Produce `data/out/ratings.csv` → `team_id, team, elo, fifa_points, fuente, fecha_corte`.
+
+### Fuente primaria: Elo (eloratings.net)
+- URL del export: `https://www.eloratings.net/World.tsv` (configurable con
+  `ELO_SOURCE_URL`). El export se **cachea** en `data/raw/elo_source_latest.tsv`
+  (versionado, reproducible). Si el cache existe se usa; si no, se descarga.
+- **Verificación de formato en runtime (no se asume layout):** el parser detecta
+  la columna de Elo por sus valores —enteros en rango plausible `[800, 2300]` y
+  con alta diversidad (el Elo varía por equipo; una columna constante como un año
+  no se confunde)— y la columna de nombre por su texto. Si **no** encuentra una
+  columna de Elo plausible, si hay **ambigüedad**, o si llegan **menos de 100
+  filas**, el proceso **reporta y se detiene**. Nunca produce ratings a ciegas.
+
+### Fuente de control: ranking FIFA (puntos)
+- No hay endpoint libre limpio, así que se provee como archivo versionado
+  `data/raw/fifa_ranking.csv` (columnas reconocibles tipo `team,points[,date]`).
+  Fuente: *FIFA/Coca-Cola Men's World Ranking* (`fifa.com/ranking`); la **fecha de
+  corte** se toma de la columna `date` del archivo o de `FIFA_FECHA_CORTE`.
+- Es **control**, no entra al modelo. Si el archivo no está, `fifa_points` queda
+  vacío y se anota en el log (no se inventa).
+
+### Reconciliación de nombres
+Las fuentes externas nombran países distinto a API-Football. Se normaliza
+(minúsculas, sin acentos/puntuación) y se aplica un **mapa de alias documentado**
+(`src/lib/names.js`): p.ej. *United States→USA*, *South Korea→Korea Republic*,
+*Ivory Coast→Cote d'Ivoire*. Filas Elo que no corresponden a participantes se
+ignoran (son selecciones fuera del torneo); equipos del torneo que no casan con
+ningún Elo se **imputan** (ver abajo) y se listan en el log.
+
+### Imputación de Elo faltante
+Selecciones sin Elo (debutantes) → **percentil 5** (`MODELO.percentilImputacionElo`,
+nearest-rank) de la distribución de Elo de los equipos que **sí** casaron. Se
+marcan con `fuente = imputado_p5`. Nunca un número arbitrario silencioso.
+
+> **Nota de entorno:** este sandbox de Claude Code on the web tiene una política
+> de red que **solo permite GitHub** (`eloratings.net`, `api-sports.io` y
+> `fifa.com` devuelven `host_not_allowed`). Por eso `extract` y la descarga de
+> Elo deben correrse en tu máquina (o dejas el `World.tsv` / `fifa_ranking.csv`
+> en `data/raw/`). El parser y el join están verificados con tests unitarios
+> offline.
 
 ---
 

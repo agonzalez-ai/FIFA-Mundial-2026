@@ -69,6 +69,39 @@ export const SIM = {
 };
 
 // ---------------------------------------------------------------------------
+// Fase 2 — Fuentes de RATINGS de fuerza
+// ---------------------------------------------------------------------------
+// Integridad: el formato de la fuente Elo se VERIFICA en runtime. El parser
+// valida lo que efectivamente llega (Elo numerico en rango plausible, equipo no
+// vacio, conteo de filas razonable) y si no cuadra REPORTA Y SE DETIENE; nunca
+// asume un layout de columnas a ciegas.
+export const RATINGS = {
+  elo: {
+    // Fuente primaria: eloratings.net (World Football Elo).
+    // URL del export. Confirma el formato vigente en tu dashboard/navegador.
+    url: process.env.ELO_SOURCE_URL || 'https://www.eloratings.net/World.tsv',
+    // Cache local versionado. Si existe, se usa (reproducible y funciona sin red).
+    // Para refrescar: borra el archivo y corre con red, o descarga el TSV a mano.
+    cacheFile: 'elo_source', // -> data/raw/elo_source_latest.json + .tsv crudo
+    sep: '\t',
+    // Rango plausible de Elo de selecciones (para validar que la columna correcta
+    // se detecto). Fuera de esto => formato cambiado => detener.
+    rangoPlausible: [800, 2300],
+    // Conteo minimo de filas para considerar el export integro.
+    filasMinimas: 100,
+  },
+  fifa: {
+    // Ranking FIFA (puntos). No hay endpoint libre limpio: se provee como archivo
+    // versionado data/raw/fifa_ranking.csv con columnas team,points y se DOCUMENTA
+    // la fuente y la fecha de corte. Es fuente de CONTROL, no entra al modelo.
+    cacheFile: 'fifa_ranking', // -> data/raw/fifa_ranking.csv (provisto por el usuario)
+    // Fecha de corte del ranking FIFA usado. Se rellena al cargar el archivo o aqui.
+    fechaCorte: process.env.FIFA_FECHA_CORTE || '',
+    fuente: 'FIFA/Coca-Cola Men\'s World Ranking (fifa.com/ranking)',
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Rutas del proyecto
 // ---------------------------------------------------------------------------
 export const PATHS = {
