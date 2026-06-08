@@ -24,6 +24,7 @@ probabilidades de avance por selección.
 | 2 | Fuerza por selección: **Dixon-Coles** sobre resultados + ancla FIFA | ✅ Implementada |
 | 3 | Modelo de partido (fuerza → xG → Poisson) | ✅ Implementada (xG desde Dixon-Coles) |
 | 4 | Simulación Monte Carlo + desempates FIFA 2026 | ✅ Implementada |
+| 5 | Fase de eliminación (R32→final) + campeón/podio | ✅ Implementada |
 
 Cada fase se revisa con el responsable **antes** de avanzar a la siguiente.
 
@@ -318,6 +319,24 @@ Por grupo Σ`p_1`≈1 y Σ`p_top2`≈2; global Σ`p_avanza`≈32 y Σ`p_mejor_te
 identidades por fila `p_avanza = p_top2 + p_mejor_tercero`, `p_eliminado = 1 − p_avanza`.
 Más tests del tiebreak: el ganador head-to-head queda por encima pese a peor dif. de
 goles global (comportamiento 2026).
+
+---
+
+## Fase 5 — Eliminación y campeón (implementada)
+
+Dentro de cada iteración Monte Carlo, tras los grupos se arma el cuadro y se juega
+hasta la final + 3er lugar (`src/lib/knockout.js`). Salida `knockout_probs.csv`:
+`team, group, p_r16, p_qf, p_sf, p_final, p_campeon, p_subcampeon, p_tercer_lugar, p_podio`.
+El `reporte.md` incluye campeón más probable, top‑3 al podio, tabla por equipo y un
+**torneo representativo** con marcadores concretos.
+
+- **Partidos de eliminación:** sede neutral (sin localía); empate en el tiempo
+  reglamentario → penales = 50/50.
+- **Cuadro (aproximación documentada):** respeta el formato 2026 publicado (R32 con
+  8 ganador‑vs‑3º, 4 ganador‑vs‑2º, 4 segundo‑vs‑2º; **sin reencuentros de grupo**) en
+  un árbol simétrico. **No** reproduce la asignación exacta de FIFA (Annex C, 495
+  escenarios para los 8 mejores terceros): impacto bajo en P(campeón), moderado en
+  subcampeón/3º. Documentado para auditoría.
 
 ---
 

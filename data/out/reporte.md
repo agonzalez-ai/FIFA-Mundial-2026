@@ -1,6 +1,6 @@
-# Reporte — Pronóstico fase de grupos, Mundial FIFA 2026
+# Reporte — Pronóstico Mundial FIFA 2026 (grupos + eliminatoria)
 
-_Generado: 2026-06-08T22:15:30.968Z_
+_Generado: 2026-06-08T22:48:52.565Z_
 
 ## Supuestos y parámetros del modelo
 
@@ -24,6 +24,50 @@ _Generado: 2026-06-08T22:15:30.968Z_
 - **Fuerza (ataque/defensa):** ajuste Dixon-Coles sobre resultados de eliminatorias. Fecha de corte: 2026-06-07.
 - **Ranking FIFA (ancla de comparabilidad + desempate):** FIFA/Coca-Cola Men's World Ranking (fifa.com/ranking). Corte: ver fifa_ranking.csv.
 
+## 🏆 Pronóstico del torneo (fase de eliminación)
+
+> **Cuadro aproximado:** se usa la estructura publicada del formato 2026 (R32: 8 ganador-vs-3º, 4 ganador-vs-2º, 4 segundo-vs-2º; sin reencuentros de grupo) con árbol simétrico. **No** es la asignación exacta Annex C de FIFA (495 escenarios para ubicar a los 8 mejores terceros); impacto bajo en P(campeón), moderado en subcampeón/3º. Partidos a sede neutral; empates a penales = 50/50.
+
+### 🥇 Campeón más probable: **Argentina** (8.1%)
+
+**Los 3 con mayor probabilidad de subir al podio (top-3):**
+1. Argentina — 19.0%
+2. Spain — 18.5%
+3. France — 18.1%
+
+_(El Mundial es muy abierto con 48 equipos: hasta el favorito ronda ~8% de título. Para un 1º-2º-3º concreto y distinto, ver el "torneo representativo" abajo.)_
+
+### Probabilidades por equipo (top 12 por título)
+
+| Equipo | Semis | Final | 🏆 Campeón | Podio (top-3) |
+|---|--:|--:|--:|--:|
+| Argentina | 22.4% | 13.8% | **8.1%** | 19.0% |
+| France | 21.4% | 13.1% | **7.8%** | 18.1% |
+| Spain | 21.9% | 13.5% | **7.7%** | 18.5% |
+| England | 19.0% | 11.0% | **6.4%** | 15.9% |
+| Belgium | 18.6% | 9.8% | **5.4%** | 14.7% |
+| Portugal | 15.3% | 8.6% | **4.7%** | 12.5% |
+| Netherlands | 15.4% | 8.5% | **4.6%** | 12.4% |
+| Brazil | 15.0% | 8.2% | **4.4%** | 12.1% |
+| Colombia | 14.0% | 7.5% | **3.9%** | 11.0% |
+| Germany | 12.3% | 6.5% | **3.2%** | 9.6% |
+| Croatia | 12.4% | 6.4% | **3.2%** | 9.6% |
+| Uruguay | 11.9% | 6.0% | **3.0%** | 9.1% |
+
+### Un torneo representativo (una simulación, marcadores concretos)
+
+_Una de las formas en que podría desarrollarse (semilla fija). Otra semilla da otro desenlace válido._
+
+**Semifinales:**
+- Mexico 2-0 Ghana → Mexico
+- Haiti 0-3 Netherlands → Netherlands
+
+**3er lugar:** Ghana 2-1 Haiti → Ghana
+
+**Final:** Mexico 0-2 Netherlands → CAMPEON Netherlands
+
+Podio de esta simulación: 🥇 Netherlands · 🥈 Mexico · 🥉 Ghana.
+
 ## Probabilidades de avance por grupo
 
 P = probabilidad estimada (frecuencia en la simulación). "Avanza" = top-2 del grupo o mejor tercero.
@@ -32,109 +76,109 @@ P = probabilidad estimada (frecuencia en la simulación). "Avanza" = top-2 del g
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| Mexico | 48.1% | 26.5% | 74.6% | 12.7% | **87.3%** | 12.7% |
-| South Korea | 23.5% | 28.8% | 52.3% | 17.8% | **70.1%** | 29.9% |
-| Czech Republic | 16.0% | 23.6% | 39.6% | 18.8% | **58.4%** | 41.6% |
-| South Africa | 12.4% | 21.1% | 33.5% | 17.8% | **51.3%** | 48.7% |
+| Mexico | 48.0% | 27.0% | 74.9% | 12.5% | **87.4%** | 12.6% |
+| South Korea | 23.8% | 28.7% | 52.5% | 17.8% | **70.3%** | 29.7% |
+| Czech Republic | 15.8% | 23.4% | 39.3% | 18.7% | **58.0%** | 42.0% |
+| South Africa | 12.4% | 20.9% | 33.3% | 18.0% | **51.3%** | 48.7% |
 
 ### Grupo B
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| Canada | 37.6% | 28.9% | 66.5% | 15.4% | **81.9%** | 18.1% |
-| Switzerland | 34.6% | 29.4% | 64.0% | 15.9% | **80.0%** | 20.0% |
-| Qatar | 17.8% | 24.0% | 41.8% | 19.4% | **61.2%** | 38.9% |
-| Bosnia and Herzegovina | 10.0% | 17.8% | 27.7% | 17.2% | **44.9%** | 55.1% |
+| Canada | 37.6% | 29.3% | 66.9% | 15.2% | **82.2%** | 17.8% |
+| Switzerland | 34.7% | 29.4% | 64.0% | 16.0% | **80.0%** | 20.0% |
+| Qatar | 17.6% | 23.7% | 41.3% | 19.7% | **61.0%** | 39.0% |
+| Bosnia and Herzegovina | 10.1% | 17.6% | 27.7% | 16.9% | **44.6%** | 55.4% |
 
 ### Grupo C
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| Argentina | 53.0% | 26.4% | 79.4% | 10.9% | **90.3%** | 9.7% |
-| Austria | 21.7% | 29.5% | 51.2% | 18.8% | **70.0%** | 30.0% |
-| Algeria | 15.4% | 25.2% | 40.6% | 19.4% | **60.0%** | 40.0% |
-| Jordan | 9.9% | 18.9% | 28.8% | 17.0% | **45.8%** | 54.2% |
+| Argentina | 53.5% | 26.2% | 79.7% | 11.1% | **90.8%** | 9.2% |
+| Austria | 21.4% | 30.2% | 51.5% | 18.4% | **69.9%** | 30.1% |
+| Algeria | 15.4% | 25.1% | 40.5% | 19.3% | **59.8%** | 40.2% |
+| Jordan | 9.7% | 18.6% | 28.2% | 17.3% | **45.6%** | 54.4% |
 
 ### Grupo D
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| United States | 48.1% | 25.9% | 74.0% | 12.3% | **86.3%** | 13.7% |
-| Australia | 20.1% | 26.7% | 46.8% | 18.4% | **65.3%** | 34.7% |
-| Turkey | 19.6% | 26.5% | 46.1% | 18.0% | **64.1%** | 35.9% |
-| Paraguay | 12.2% | 20.9% | 33.1% | 17.8% | **50.8%** | 49.2% |
+| United States | 47.9% | 25.9% | 73.9% | 12.5% | **86.4%** | 13.6% |
+| Australia | 20.5% | 27.0% | 47.6% | 17.9% | **65.4%** | 34.6% |
+| Turkey | 19.6% | 26.3% | 45.9% | 18.4% | **64.3%** | 35.7% |
+| Paraguay | 11.9% | 20.7% | 32.7% | 17.9% | **50.6%** | 49.4% |
 
 ### Grupo E
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| Belgium | 46.5% | 28.5% | 75.0% | 13.2% | **88.3%** | 11.7% |
-| Iran | 28.3% | 30.9% | 59.2% | 18.1% | **77.3%** | 22.7% |
-| Egypt | 18.3% | 26.6% | 45.0% | 21.1% | **66.1%** | 33.9% |
-| New Zealand | 6.8% | 14.0% | 20.9% | 14.8% | **35.7%** | 64.3% |
+| Belgium | 46.2% | 27.9% | 74.1% | 13.8% | **87.9%** | 12.1% |
+| Iran | 28.4% | 31.2% | 59.6% | 17.7% | **77.3%** | 22.7% |
+| Egypt | 18.5% | 26.9% | 45.4% | 21.1% | **66.6%** | 33.4% |
+| New Zealand | 6.9% | 14.0% | 20.9% | 14.6% | **35.5%** | 64.5% |
 
 ### Grupo F
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| Brazil | 42.8% | 29.8% | 72.6% | 14.3% | **86.9%** | 13.1% |
-| Morocco | 34.4% | 31.9% | 66.3% | 16.1% | **82.4%** | 17.6% |
-| Scotland | 15.5% | 23.8% | 39.3% | 21.1% | **60.4%** | 39.6% |
-| Haiti | 7.3% | 14.5% | 21.8% | 15.6% | **37.4%** | 62.6% |
+| Brazil | 43.3% | 29.8% | 73.1% | 14.1% | **87.2%** | 12.8% |
+| Morocco | 34.0% | 31.9% | 66.0% | 16.3% | **82.2%** | 17.8% |
+| Scotland | 15.3% | 23.8% | 39.1% | 21.0% | **60.1%** | 39.9% |
+| Haiti | 7.3% | 14.5% | 21.9% | 15.6% | **37.5%** | 62.5% |
 
 ### Grupo G
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| Spain | 51.4% | 26.9% | 78.3% | 11.4% | **89.8%** | 10.2% |
-| Uruguay | 28.0% | 33.1% | 61.1% | 16.3% | **77.5%** | 22.5% |
-| Saudi Arabia | 11.3% | 21.5% | 32.8% | 18.7% | **51.5%** | 48.5% |
-| Cape Verde | 9.2% | 18.5% | 27.7% | 17.2% | **44.9%** | 55.1% |
+| Spain | 51.7% | 26.6% | 78.3% | 11.3% | **89.6%** | 10.4% |
+| Uruguay | 28.1% | 33.3% | 61.4% | 16.6% | **77.9%** | 22.1% |
+| Saudi Arabia | 11.3% | 21.3% | 32.6% | 18.6% | **51.2%** | 48.8% |
+| Cape Verde | 9.0% | 18.8% | 27.8% | 17.2% | **45.1%** | 54.9% |
 
 ### Grupo H
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
 | Portugal | 40.8% | 28.8% | 69.6% | 13.9% | **83.5%** | 16.5% |
-| Colombia | 36.1% | 30.2% | 66.3% | 15.1% | **81.4%** | 18.6% |
-| DR Congo | 11.6% | 20.9% | 32.5% | 17.8% | **50.3%** | 49.7% |
-| Uzbekistan | 11.5% | 20.1% | 31.6% | 18.3% | **49.8%** | 50.2% |
+| Colombia | 35.9% | 30.1% | 66.0% | 15.2% | **81.2%** | 18.8% |
+| DR Congo | 11.7% | 20.6% | 32.3% | 17.8% | **50.1%** | 49.9% |
+| Uzbekistan | 11.5% | 20.5% | 32.0% | 18.0% | **50.0%** | 50.0% |
 
 ### Grupo I
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| England | 44.9% | 28.8% | 73.7% | 13.4% | **87.1%** | 12.9% |
-| Croatia | 30.8% | 31.2% | 62.0% | 16.9% | **78.9%** | 21.1% |
-| Panama | 15.6% | 23.3% | 38.9% | 19.8% | **58.7%** | 41.3% |
-| Ghana | 8.7% | 16.8% | 25.5% | 16.5% | **41.9%** | 58.1% |
+| England | 45.1% | 28.7% | 73.9% | 13.4% | **87.3%** | 12.8% |
+| Croatia | 30.8% | 31.2% | 61.9% | 16.9% | **78.8%** | 21.2% |
+| Panama | 15.4% | 23.5% | 38.9% | 19.8% | **58.7%** | 41.3% |
+| Ghana | 8.7% | 16.6% | 25.3% | 16.6% | **41.9%** | 58.1% |
 
 ### Grupo J
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| Germany | 44.9% | 26.6% | 71.5% | 14.0% | **85.5%** | 14.5% |
-| Ecuador | 23.5% | 28.8% | 52.2% | 18.5% | **70.7%** | 29.3% |
-| Ivory Coast | 22.7% | 27.8% | 50.4% | 19.1% | **69.6%** | 30.4% |
-| Curaçao | 8.9% | 16.9% | 25.9% | 15.7% | **41.5%** | 58.5% |
+| Germany | 45.1% | 26.7% | 71.8% | 13.9% | **85.7%** | 14.3% |
+| Ecuador | 23.0% | 29.0% | 52.0% | 18.8% | **70.8%** | 29.2% |
+| Ivory Coast | 22.6% | 28.0% | 50.6% | 19.0% | **69.6%** | 30.4% |
+| Curaçao | 9.3% | 16.3% | 25.5% | 15.3% | **40.8%** | 59.2% |
 
 ### Grupo K
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| France | 49.3% | 26.9% | 76.2% | 12.3% | **88.5%** | 11.5% |
-| Senegal | 24.4% | 30.1% | 54.5% | 17.7% | **72.2%** | 27.8% |
-| Norway | 15.1% | 22.7% | 37.9% | 18.1% | **56.0%** | 44.0% |
-| Iraq | 11.1% | 20.3% | 31.4% | 18.4% | **49.9%** | 50.1% |
+| France | 50.1% | 26.7% | 76.9% | 11.9% | **88.7%** | 11.3% |
+| Senegal | 23.7% | 30.0% | 53.7% | 18.2% | **71.9%** | 28.1% |
+| Norway | 15.0% | 22.9% | 37.8% | 18.4% | **56.2%** | 43.8% |
+| Iraq | 11.2% | 20.4% | 31.6% | 18.7% | **50.2%** | 49.8% |
 
 ### Grupo L
 
 | Equipo | P(1º) | P(2º) | P(top-2) | P(mejor 3º) | **P(avanza)** | P(elim.) |
 |---|---:|---:|---:|---:|---:|---:|
-| Netherlands | 40.4% | 27.5% | 67.9% | 14.8% | **82.7%** | 17.3% |
-| Japan | 28.4% | 27.9% | 56.3% | 17.2% | **73.5%** | 26.5% |
-| Sweden | 16.1% | 22.4% | 38.6% | 18.2% | **56.8%** | 43.3% |
-| Tunisia | 15.1% | 22.1% | 37.2% | 18.8% | **56.0%** | 44.0% |
+| Netherlands | 39.9% | 27.6% | 67.5% | 14.7% | **82.2%** | 17.8% |
+| Japan | 28.5% | 27.7% | 56.2% | 17.1% | **73.3%** | 26.7% |
+| Sweden | 16.4% | 22.1% | 38.5% | 18.1% | **56.6%** | 43.4% |
+| Tunisia | 15.2% | 22.6% | 37.8% | 18.8% | **56.6%** | 43.4% |
 
 ## Pronóstico por partido (goles esperados y marcador)
 

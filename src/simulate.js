@@ -17,6 +17,7 @@ import { aCSV, objetosDesdeDelimitado } from './lib/csv.js';
 import { crearRng, muestrearPoisson } from './lib/rng.js';
 import { cargarFit, lambdasFixture, matrizMarcadores, resumenPartido, pTotalGE, marcadorConsistente } from './model.js';
 import { ordenarGrupo, rankearTerceros } from './lib/standings.js';
+import { simularKnockout } from './lib/knockout.js';
 import { info, warn } from './lib/logger.js';
 
 function cargarCSV(nombre) {
@@ -59,10 +60,12 @@ export function prepararTorneo(ratings, fixtures, teams, groups, fit) {
   return { gruposMap, porGrupo, fifaPorId, nombrePorId, matchMeta };
 }
 
-// Una iteracion: simula y devuelve, por equipo, su posicion (1..4) y stats del 3o.
-function simularIteracion(gruposMap, porGrupo, fifaPorId, rng, ctx) {
+// Una iteracion completa: grupos -> 32 clasificados -> eliminatoria -> campeon/2º/3º.
+function simularIteracion(gruposMap, porGrupo, fifaPorId, fit, rng, ctx, trace = false) {
   const posiciones = new Map(); // id -> 1..4
   const terceros = [];
+  const W = new Map(), R = new Map();   // ganador y subcampeon por grupo
+  const grupoDeTercero = new Map();     // id tercero -> grupo
   for (const [grupo, ids] of gruposMap) {
     const fixturesG = porGrupo.get(grupo) || [];
     const partidos = fixturesG.map((m) => ({
@@ -72,14 +75,19 @@ function simularIteracion(gruposMap, porGrupo, fifaPorId, rng, ctx) {
     }));
     const { orden, overall } = ordenarGrupo(ids, partidos, fifaPorId, rng, ctx);
     orden.forEach((id, i) => posiciones.set(id, i + 1));
+    W.set(grupo, orden[0]); R.set(grupo, orden[1]);
     const tercero = orden[2];
     const o = overall.get(tercero);
     terceros.push({ id: tercero, pts: o.pts, gd: o.gd, gf: o.gf });
+    grupoDeTercero.set(tercero, grupo);
   }
   // 8 mejores terceros
   const ordenTerceros = rankearTerceros(terceros, fifaPorId, rng, ctx);
   const mejoresTerceros = new Set(ordenTerceros.slice(0, TORNEO.mejoresTerceros));
-  return { posiciones, mejoresTerceros };
+  // Eliminatoria
+  const thirds = ordenTerceros.slice(0, TORNEO.mejoresTerceros).map((id) => ({ id, group: grupoDeTercero.get(id) }));
+  const ko = simularKnockout(W, R, thirds, fit, rng, trace);
+  return { posiciones, mejoresTerceros, ko };
 }
 
 function main() {
@@ -120,11 +128,13 @@ function main() {
   const N = SIM.iteraciones;
   const rng = crearRng(SIM.semilla);
   const ctx = { empatesAzar: 0 };
-  const cont = new Map(); // id -> {c1,c2,c3,c4,top2,tercero,avanza}
-  for (const ids of gruposMap.values()) for (const id of ids) cont.set(id, { c1: 0, c2: 0, c3: 0, c4: 0, top2: 0, tercero: 0, avanza: 0 });
+  const cont = new Map(); // id -> contadores de grupo + eliminatoria
+  for (const ids of gruposMap.values()) for (const id of ids) {
+    cont.set(id, { c1: 0, c2: 0, c3: 0, c4: 0, top2: 0, tercero: 0, avanza: 0, r16: 0, qf: 0, sf: 0, fin: 0, campeon: 0, sub: 0, terceroT: 0 });
+  }
 
   for (let it = 0; it < N; it++) {
-    const { posiciones, mejoresTerceros } = simularIteracion(gruposMap, porGrupo, fifaPorId, rng, ctx);
+    const { posiciones, mejoresTerceros, ko } = simularIteracion(gruposMap, porGrupo, fifaPorId, fit, rng, ctx);
     for (const [id, pos] of posiciones) {
       const c = cont.get(id);
       if (pos === 1) { c.c1++; c.top2++; c.avanza++; }
@@ -132,6 +142,17 @@ function main() {
       else if (pos === 3) { c.c3++; if (mejoresTerceros.has(id)) { c.tercero++; c.avanza++; } }
       else c.c4++;
     }
+    // Rondas de eliminatoria alcanzadas (reached = ronda mas profunda).
+    for (const [id, ronda] of ko.reached) {
+      const c = cont.get(id); if (!c) continue;
+      if (ronda <= 16) c.r16++;
+      if (ronda <= 8) c.qf++;
+      if (ronda <= 4) c.sf++;
+      if (ronda <= 2) c.fin++;
+    }
+    cont.get(ko.champion).campeon++;
+    cont.get(ko.runnerUp).sub++;
+    cont.get(ko.third).terceroT++;
   }
 
   // --- group_probs.csv ---
@@ -151,8 +172,26 @@ function main() {
     'group', 'team_id', 'team', 'p_1', 'p_2', 'p_top2', 'p_mejor_tercero', 'p_avanza', 'p_eliminado',
   ]);
 
+  // --- knockout_probs.csv (probabilidades por ronda + podio) ---
+  const filasKO = [];
+  for (const [id, c] of cont) filasKO.push({
+    team: nombrePorId.get(id) || id, group: grupoDe.get(id),
+    p_r16: (c.r16 / N).toFixed(4), p_qf: (c.qf / N).toFixed(4), p_sf: (c.sf / N).toFixed(4),
+    p_final: (c.fin / N).toFixed(4), p_campeon: (c.campeon / N).toFixed(4),
+    p_subcampeon: (c.sub / N).toFixed(4), p_tercer_lugar: (c.terceroT / N).toFixed(4),
+    p_podio: ((c.campeon + c.sub + c.terceroT) / N).toFixed(4),
+  });
+  filasKO.sort((a, b) => Number(b.p_campeon) - Number(a.p_campeon));
+  escribir('knockout_probs.csv', filasKO, [
+    'team', 'group', 'p_r16', 'p_qf', 'p_sf', 'p_final', 'p_campeon', 'p_subcampeon', 'p_tercer_lugar', 'p_podio',
+  ]);
+
+  // Un torneo representativo (semilla fija) para mostrar marcadores concretos.
+  const repr = simularIteracion(gruposMap, porGrupo, fifaPorId, fit, crearRng(SIM.semilla + 1), { empatesAzar: 0 }, true);
+  const nom = (id) => nombrePorId.get(id) || id;
+
   // --- reporte.md ---
-  escribirReporte(filasGrupo, { N, nPartidos, ctx, fit, filasMatch, fechaCorte: ratings[0]?.fecha_corte });
+  escribirReporte(filasGrupo, { N, nPartidos, ctx, fit, filasMatch, filasKO, repr, nom, fechaCorte: ratings[0]?.fecha_corte });
 
   const segs = ((Date.now() - t0) / 1000).toFixed(1);
   if (ctx.empatesAzar) warn(`Empates resueltos por azar (ultimo recurso): ${ctx.empatesAzar} en ${N} iteraciones (${(ctx.empatesAzar / N).toFixed(6)} por corrida).`);
@@ -167,9 +206,9 @@ function escribir(nombre, filas, columnas) {
 }
 
 function escribirReporte(filasGrupo, meta) {
-  const { N, nPartidos, ctx, fit, filasMatch, fechaCorte } = meta;
+  const { N, nPartidos, ctx, fit, filasMatch, filasKO, repr, nom, fechaCorte } = meta;
   const L = [];
-  L.push('# Reporte — Pronóstico fase de grupos, Mundial FIFA 2026');
+  L.push('# Reporte — Pronóstico Mundial FIFA 2026 (grupos + eliminatoria)');
   L.push('');
   L.push(`_Generado: ${new Date().toISOString()}_`);
   L.push('');
@@ -195,6 +234,52 @@ function escribirReporte(filasGrupo, meta) {
   L.push(`- **Fuerza (ataque/defensa):** ajuste Dixon-Coles sobre resultados de eliminatorias. Fecha de corte: ${fechaCorte || 'ver ratings.csv'}.`);
   L.push(`- **Ranking FIFA (ancla de comparabilidad + desempate):** ${RATINGS.fifa.fuente}. Corte: ${RATINGS.fifa.fechaCorte || 'ver fifa_ranking.csv'}.`);
   L.push('');
+
+  // ===== Fase de eliminacion: podio + probabilidades =====
+  if (filasKO && filasKO.length) {
+    const pc = (v) => `${(Number(v) * 100).toFixed(1)}%`;
+    const podio = [...filasKO].sort((a, b) => Number(b.p_podio) - Number(a.p_podio)).slice(0, 3);
+    L.push('## 🏆 Pronóstico del torneo (fase de eliminación)');
+    L.push('');
+    L.push('> **Cuadro aproximado:** se usa la estructura publicada del formato 2026 (R32: 8 ganador-vs-3º, '
+      + '4 ganador-vs-2º, 4 segundo-vs-2º; sin reencuentros de grupo) con árbol simétrico. **No** es la asignación '
+      + 'exacta Annex C de FIFA (495 escenarios para ubicar a los 8 mejores terceros); impacto bajo en P(campeón), '
+      + 'moderado en subcampeón/3º. Partidos a sede neutral; empates a penales = 50/50.');
+    L.push('');
+    L.push(`### 🥇 Campeón más probable: **${filasKO[0].team}** (${pc(filasKO[0].p_campeon)})`);
+    L.push('');
+    L.push('**Los 3 con mayor probabilidad de subir al podio (top-3):**');
+    L.push(`1. ${podio[0].team} — ${pc(podio[0].p_podio)}`);
+    L.push(`2. ${podio[1].team} — ${pc(podio[1].p_podio)}`);
+    L.push(`3. ${podio[2].team} — ${pc(podio[2].p_podio)}`);
+    L.push('');
+    L.push('_(El Mundial es muy abierto con 48 equipos: hasta el favorito ronda ~8% de título. '
+      + 'Para un 1º-2º-3º concreto y distinto, ver el "torneo representativo" abajo.)_');
+    L.push('');
+    L.push('### Probabilidades por equipo (top 12 por título)');
+    L.push('');
+    L.push('| Equipo | Semis | Final | 🏆 Campeón | Podio (top-3) |');
+    L.push('|---|--:|--:|--:|--:|');
+    for (const r of filasKO.slice(0, 12)) {
+      L.push(`| ${r.team} | ${pc(r.p_sf)} | ${pc(r.p_final)} | **${pc(r.p_campeon)}** | ${pc(r.p_podio)} |`);
+    }
+    L.push('');
+    // Torneo representativo
+    if (repr && repr.ko && repr.ko.bracket) {
+      const b = repr.ko.bracket;
+      L.push('### Un torneo representativo (una simulación, marcadores concretos)');
+      L.push('');
+      L.push('_Una de las formas en que podría desarrollarse (semilla fija). Otra semilla da otro desenlace válido._');
+      L.push('');
+      const linea = (s) => s.replace(/->/g, '→');
+      if (b['Semis']) { L.push('**Semifinales:**'); b['Semis'].forEach((x) => L.push(`- ${linea(x)}`)); L.push(''); }
+      if (b['3er lugar']) { L.push(`**3er lugar:** ${linea(b['3er lugar'][0])}`); L.push(''); }
+      if (b['Final']) { L.push(`**Final:** ${linea(b['Final'][0])}`); L.push(''); }
+      L.push(`Podio de esta simulación: 🥇 ${nom(repr.ko.champion)} · 🥈 ${nom(repr.ko.runnerUp)} · 🥉 ${nom(repr.ko.third)}.`);
+      L.push('');
+    }
+  }
+
   L.push('## Probabilidades de avance por grupo');
   L.push('');
   L.push('P = probabilidad estimada (frecuencia en la simulación). "Avanza" = top-2 del grupo o mejor tercero.');
