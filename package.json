@@ -9,7 +9,8 @@
     "ingest": "node src/ingest_github.js",
     "ratings": "node src/ratings.js",
     "model": "node src/model.js",
-    "simulate": "node src/simulate.js"
+    "simulate": "node src/simulate.js",
+    "site": "node src/build_site.js"
   },
   "engines": {
     "node": ">=20"

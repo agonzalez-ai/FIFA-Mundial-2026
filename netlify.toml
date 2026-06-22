@@ -1,0 +1,5 @@
+# Despliegue del sitio estatico del pronostico (carpeta site/).
+# El sitio se genera con `npm run site` a partir de data/out/.
+[build]
+  publish = "site"
+  command = "npm run site"

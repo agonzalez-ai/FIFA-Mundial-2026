@@ -14,3 +14,7 @@ logs/*.log
 
 # IMPORTANTE: data/raw SI se versiona a proposito (cache crudo reproducible).
 # data/out SI se versiona (resultados auditables del modelo).
+
+# Sitio generado (Netlify lo construye con `npm run site`); se versiona solo el generador.
+site/*.csv
+site/*.md
